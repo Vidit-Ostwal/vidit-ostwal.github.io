@@ -71,7 +71,7 @@ const withNumbers = (t: string) =>
                 </div>
               </div>
 
-              <article class:list={['timeline-card', 'role-card', role.current && 'role-card--current', role.current && 'is-open', isContinued && 'role-card--continued']}>
+              <article class:list={['timeline-card', 'role-card', role.current && 'role-card--current', role.current && 'is-open', role.bullets.length < 2 && 'role-card--static', isContinued && 'role-card--continued']}>
                 <div class="role-header">
                   <p class="tl-dates-mobile mono">
                     {dateRange}
@@ -104,12 +104,31 @@ const withNumbers = (t: string) =>
                   )}
                 </div>
 
-                <ul class="bullets">
-                  {role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
-                </ul>
-                <button type="button" class="role-toggle mono" aria-expanded={role.current ? 'true' : 'false'}>
-                  {role.current ? 'Hide highlights' : `Show highlights (${role.bullets.length})`}
-                </button>
+                {role.bullets.length > 1 ? (
+                  <>
+                    <p class="role-preview" aria-hidden="true" set:html={withNumbers(role.bullets[0])} />
+                    <div class="role-body" id={`role-${group.company.replace(/\W+/g, '')}-${roleIndex}`}>
+                      <div class="role-body-inner">
+                        <ul class="bullets">
+                          {role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
+                        </ul>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="role-toggle mono"
+                      aria-expanded={role.current ? 'true' : 'false'}
+                      aria-controls={`role-${group.company.replace(/\W+/g, '')}-${roleIndex}`}
+                    >
+                      <span class="role-toggle-label">{role.current ? 'Show less' : 'Read the full story'}</span>
+                      <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg>
+                    </button>
+                  </>
+                ) : (
+                  <ul class="bullets">
+                    {role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
+                  </ul>
+                )}
               </article>
             </div>
           );
@@ -131,14 +150,22 @@ const withNumbers = (t: string) =>
   const groups = document.querySelectorAll<HTMLElement>('.company-group');
   const emptyState = document.querySelector<HTMLElement>('.empty-state');
 
-  // Mobile: bullets collapse behind a toggle (CSS keeps them open on desktop)
-  document.querySelectorAll<HTMLElement>('.role-card').forEach((card) => {
+  // Click a role to read its full story; one open at a time
+  const cards = document.querySelectorAll<HTMLElement>('.role-card:not(.role-card--static)');
+  function setOpen(card: HTMLElement, open: boolean) {
+    card.classList.toggle('is-open', open);
     const btn = card.querySelector<HTMLButtonElement>('.role-toggle');
-    const count = card.querySelectorAll('.bullets li').length;
-    btn?.addEventListener('click', () => {
-      const open = card.classList.toggle('is-open');
-      btn.setAttribute('aria-expanded', String(open));
-      btn.textContent = open ? 'Hide highlights' : `Show highlights (${count})`;
+    const label = card.querySelector<HTMLElement>('.role-toggle-label');
+    btn?.setAttribute('aria-expanded', String(open));
+    if (label) label.textContent = open ? 'Show less' : 'Read the full story';
+  }
+  cards.forEach((card) => {
+    card.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) return;
+      const willOpen = !card.classList.contains('is-open');
+      cards.forEach((c) => setOpen(c, false));
+      setOpen(card, willOpen);
+      document.dispatchEvent(new CustomEvent('timeline-rows-changed'));
     });
   });
 
@@ -323,35 +350,60 @@ const withNumbers = (t: string) =>
     padding: 0 0.2em;
   }
 
-  .role-toggle { display: none; }
+  .role-card:not(.role-card--static) { cursor: pointer; }
+
+  /* Collapsed: a two-line preview of the first highlight */
+  .role-preview {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #555555;
+    line-height: 1.7;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .role-card.is-open .role-preview { display: none; }
+  .role-preview :global(.num) {
+    font-weight: 600;
+    color: #111111;
+    background: #f1efe9;
+    border-radius: 3px;
+    padding: 0 0.2em;
+  }
+
+  /* Smooth height animation: 0fr -> 1fr */
+  .role-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease;
+  }
+  .role-card.is-open .role-body { grid-template-rows: 1fr; }
+  .role-body-inner { overflow: hidden; min-height: 0; }
+
+  .role-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2rem;
+    margin-top: 0.5rem;
+    padding: 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    color: #111111;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .chev { width: 0.95rem; height: 0.95rem; transition: transform 0.25s ease; }
+  .role-card.is-open .chev { transform: rotate(180deg); }
 
   @media (--mobile) {
     .timeline-row--continued { margin-top: 0; }
+  }
 
-    /* Collapsed: show a two-line preview of the first highlight, not nothing */
-    .role-card:not(.is-open) .bullets li:not(:first-child) { display: none; }
-    .role-card:not(.is-open) .bullets li:first-child {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .role-toggle {
-      display: inline-flex;
-      align-items: center;
-      min-height: 2.5rem;
-      margin-top: 0.7rem;
-      padding: 0.4rem 0.85rem;
-      font-size: 0.72rem;
-      letter-spacing: 0.03em;
-      color: #111111;
-      background: #ffffff;
-      border: 1px solid #e4e4e4;
-      border-radius: 999px;
-      cursor: pointer;
-    }
-    .role-toggle:active { background: #f7f7f7; }
+  @media (prefers-reduced-motion: reduce) {
+    .role-body, .chev { transition: none; }
   }
 
   :global([data-theme="dark"]) h1 { color: #e8e8e8; }
@@ -391,5 +443,7 @@ const withNumbers = (t: string) =>
   :global([data-theme="dark"]) .bullets li { color: #909090; }
   :global([data-theme="dark"]) .bullets li::before { color: #3a3a3a; }
   :global([data-theme="dark"]) .bullets :global(.num) { color: #e8e8e8; background: #2a2a2a; }
-  :global([data-theme="dark"]) .role-toggle { color: #909090; background: #1a1a1a; border-color: #2a2a2a; }
+  :global([data-theme="dark"]) .role-toggle { color: #e0e0e0; }
+  :global([data-theme="dark"]) .role-preview { color: #909090; }
+  :global([data-theme="dark"]) .role-preview :global(.num) { color: #e8e8e8; background: #2a2a2a; }
 </style>

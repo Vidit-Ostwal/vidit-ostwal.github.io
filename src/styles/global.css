@@ -97,7 +97,7 @@ html.theme-transitioning *::after {
    Desktop: [dates right-aligned] [dot on spine] [card]
    Mobile: stacked cards with dates in-card; jump nav on the right */
 .timeline-page {
-  max-width: var(--content-max);
+  max-width: 1000px;
   margin: 0 auto;
   padding: 7rem 1.5rem 2rem;
   /* Narrow rail — ranges stack as two lines (e.g. Aug 2026 / Present) */
