@@ -15,6 +15,11 @@ const employmentTypes = employmentTypeOrder.filter((type) =>
 );
 
 const companyGroups = groupExperienceByCompany(experience);
+
+const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/** Highlight impact numbers (500,000+, 30%, ~40%, 320+) inside a bullet. */
+const withNumbers = (t: string) =>
+  esc(t).replace(/(~?\d[\d,]*\s?%|\d[\d,]*\+)/g, '<mark class="num">$1</mark>');
 ---
 
 <Layout title="Experience — Vidit Ostwal">
@@ -66,7 +71,7 @@ const companyGroups = groupExperienceByCompany(experience);
                 </div>
               </div>
 
-              <article class:list={['timeline-card', 'role-card', role.current && 'role-card--current', isContinued && 'role-card--continued']}>
+              <article class:list={['timeline-card', 'role-card', role.current && 'role-card--current', role.current && 'is-open', isContinued && 'role-card--continued']}>
                 <div class="role-header">
                   <p class="tl-dates-mobile mono">
                     {dateRange}
@@ -100,8 +105,11 @@ const companyGroups = groupExperienceByCompany(experience);
                 </div>
 
                 <ul class="bullets">
-                  {role.bullets.map((b) => <li>{b}</li>)}
+                  {role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
                 </ul>
+                <button type="button" class="role-toggle mono" aria-expanded={role.current ? 'true' : 'false'}>
+                  {role.current ? 'Hide highlights' : `Show highlights (${role.bullets.length})`}
+                </button>
               </article>
             </div>
           );
@@ -122,6 +130,17 @@ const companyGroups = groupExperienceByCompany(experience);
   const rows = document.querySelectorAll<HTMLElement>('.timeline-row');
   const groups = document.querySelectorAll<HTMLElement>('.company-group');
   const emptyState = document.querySelector<HTMLElement>('.empty-state');
+
+  // Mobile: bullets collapse behind a toggle (CSS keeps them open on desktop)
+  document.querySelectorAll<HTMLElement>('.role-card').forEach((card) => {
+    const btn = card.querySelector<HTMLButtonElement>('.role-toggle');
+    const count = card.querySelectorAll('.bullets li').length;
+    btn?.addEventListener('click', () => {
+      const open = card.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', String(open));
+      btn.textContent = open ? 'Hide highlights' : `Show highlights (${count})`;
+    });
+  });
 
   filterBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -296,8 +315,37 @@ const companyGroups = groupExperienceByCompany(experience);
     color: #cccccc;
   }
 
+  .bullets :global(.num) {
+    font-weight: 600;
+    color: #111111;
+    background: #f1efe9;
+    border-radius: 3px;
+    padding: 0 0.2em;
+  }
+
+  .role-toggle { display: none; }
+
   @media (--mobile) {
     .timeline-row--continued { margin-top: 0; }
+
+    .role-card:not(.is-open) .bullets { display: none; }
+    .role-card:not(.is-open) .role-header { margin-bottom: 0.4rem; }
+
+    .role-toggle {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2.5rem;
+      margin-top: 0.7rem;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+      color: #555555;
+      background: #ffffff;
+      border: 1px solid #e4e4e4;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .role-toggle:active { background: #f7f7f7; }
   }
 
   :global([data-theme="dark"]) h1 { color: #e8e8e8; }
@@ -336,4 +384,6 @@ const companyGroups = groupExperienceByCompany(experience);
   }
   :global([data-theme="dark"]) .bullets li { color: #909090; }
   :global([data-theme="dark"]) .bullets li::before { color: #3a3a3a; }
+  :global([data-theme="dark"]) .bullets :global(.num) { color: #e8e8e8; background: #2a2a2a; }
+  :global([data-theme="dark"]) .role-toggle { color: #909090; background: #1a1a1a; border-color: #2a2a2a; }
 </style>
