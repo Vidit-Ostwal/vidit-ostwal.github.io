@@ -241,18 +241,18 @@ const withNumbers = (t: string) =>
   .role-title {
     flex: 1;
     min-width: 0;
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: #111111;
-    letter-spacing: -0.01em;
-    line-height: 1.25;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
     margin: 0;
   }
 
   .role-tag {
     flex-shrink: 0;
     max-width: 45%;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     letter-spacing: 0.03em;
     color: #555555;
     border: 1px solid #e4e4e4;
@@ -265,14 +265,14 @@ const withNumbers = (t: string) =>
   }
 
   .role-company {
-    font-size: 0.79rem;
+    font-size: 0.9rem;
     color: #666666;
     line-height: 1.55;
     margin: 0;
   }
 
   .role-company--continued {
-    font-size: 0.74rem;
+    font-size: 0.8rem;
     color: #888888;
   }
 
@@ -297,14 +297,14 @@ const withNumbers = (t: string) =>
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.55rem;
     margin: 0;
     padding: 0;
   }
   .bullets li {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #555555;
-    line-height: 1.65;
+    line-height: 1.7;
     padding-left: 1rem;
     position: relative;
   }
@@ -328,8 +328,14 @@ const withNumbers = (t: string) =>
   @media (--mobile) {
     .timeline-row--continued { margin-top: 0; }
 
-    .role-card:not(.is-open) .bullets { display: none; }
-    .role-card:not(.is-open) .role-header { margin-bottom: 0.4rem; }
+    /* Collapsed: show a two-line preview of the first highlight, not nothing */
+    .role-card:not(.is-open) .bullets li:not(:first-child) { display: none; }
+    .role-card:not(.is-open) .bullets li:first-child {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
 
     .role-toggle {
       display: inline-flex;
@@ -339,7 +345,7 @@ const withNumbers = (t: string) =>
       padding: 0.4rem 0.85rem;
       font-size: 0.72rem;
       letter-spacing: 0.03em;
-      color: #555555;
+      color: #111111;
       background: #ffffff;
       border: 1px solid #e4e4e4;
       border-radius: 999px;
