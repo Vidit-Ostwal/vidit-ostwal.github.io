@@ -1,20 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import MobileTimelineNav from '../components/MobileTimelineNav.astro';
-import {
-  experience,
-  formatDateRange,
-  formatDuration,
-  groupExperienceByCompany,
-  type EmploymentType,
-} from '../data/experience';
+import { withBase } from '../lib/paths';
+import { experience, formatDateRange, formatDuration } from '../data/experience';
 
-const employmentTypeOrder: EmploymentType[] = ['Full Time', 'Part Time', 'Contract', 'Internship'];
-const employmentTypes = employmentTypeOrder.filter((type) =>
-  experience.some((role) => role.employmentType === type)
-);
-
-const companyGroups = groupExperienceByCompany(experience);
+/** Oldest first: the map reads like a story, start to now. */
+const stops = [...experience].reverse();
 
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** Highlight impact numbers (500,000+, 30%, ~40%, 320+) inside a bullet. */
@@ -23,427 +13,517 @@ const withNumbers = (t: string) =>
 ---
 
 <Layout title="Experience — Vidit Ostwal">
-<div class="page timeline-page">
+<div class="page map-page">
 
-  <div class="fade-in header">
+  <div class="header">
     <h1>Experience</h1>
-    <p class="sub">Roles and what I built.</p>
+    <p class="sub">Follow the path from my first project to today. Walk to each stop to see what I did there.</p>
   </div>
 
-  <div class="fade-in filters" role="group" aria-label="Filter by employment type">
-    <button type="button" class="filter-btn mono is-active" data-filter="all">All</button>
-    {employmentTypes.map((type) => (
-      <button type="button" class="filter-btn mono" data-filter={type}>{type}</button>
-    ))}
+  <div class="controls">
+    <button type="button" class="ctl mono" id="fast-travel">Fast travel to now</button>
+    <button type="button" class="ctl mono" id="restart">Start over</button>
+    <p class="status mono" id="map-status" role="status" aria-live="polite"></p>
   </div>
 
-  <div class="timeline-wrap">
-    <div class="timeline-spine" aria-hidden="true"></div>
+  <div class="map" id="map">
+    <svg class="map-svg" aria-hidden="true"></svg>
 
-    {companyGroups.map((group) => (
-      <div class="company-group" data-company={group.company}>
-        {group.roles.map((role, roleIndex) => {
-          const isFirstInCompany = roleIndex === 0;
-          const isContinued = roleIndex > 0;
-          const dateRange = formatDateRange(role.start, role.end);
-          const duration = formatDuration(role.start, role.end, role.current);
+    <ol class="stops">
+      {stops.map((role, i) => (
+        <li class:list={['stop', i % 2 === 0 ? 'stop--a' : 'stop--b']} data-index={i}>
+          <button
+            type="button"
+            class="node mono"
+            aria-expanded="false"
+            aria-controls={`stop-body-${i}`}
+            aria-label={`Stop ${i + 1}: ${role.title} at ${role.company}, ${formatDateRange(role.start, role.end)}`}
+          >
+            <span class="node-num">{i + 1}</span>
+            <svg class="node-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <svg class="node-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+          </button>
 
-          return (
-            <div
-              class:list={['fade-in', 'timeline-row', role.current && 'timeline-row--current', isContinued && 'timeline-row--continued']}
-              data-employment-type={role.employmentType}
-              data-nav-label={role.title}
-              data-nav-date={role.end}
-              data-nav-end={role.end}
-              data-nav-start={role.start}
-            >
-              <div class="timeline-side">
-                <div class="tl-dates mono">
-                  <span class="tl-range">
-                    <span class="tl-range-start">{role.start}</span>
-                    <span class="tl-range-end">{role.end}</span>
-                  </span>
-                  <span class="tl-duration">{duration}</span>
-                  {role.current && <span class="tl-badge mono">Current</span>}
-                </div>
-                <div class="tl-marker">
-                  <span class:list={['tl-dot', role.current && 'tl-dot--current']}></span>
-                </div>
+          <article class="card">
+            <p class="meta mono">
+              {formatDateRange(role.start, role.end)} · {formatDuration(role.start, role.end, role.current)}
+              {role.current && <span class="badge">Now</span>}
+              {i === 0 && <span class="badge badge--start">Start</span>}
+            </p>
+            <h2 class="title">{role.title}</h2>
+            <p class="company">
+              {role.companyUrl ? (
+                <a href={role.companyUrl} target="_blank" rel="noopener" class="company-link">{role.company}</a>
+              ) : (
+                role.company
+              )}
+            </p>
+
+            <div class="card-body" id={`stop-body-${i}`}>
+              <div class="card-body-inner">
+                <p class="tag mono">{role.employmentType}</p>
+                <ul class="bullets">
+                  {role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
+                </ul>
               </div>
-
-              <article class:list={['timeline-card', 'role-card', role.current && 'role-card--current', role.current && 'is-open', role.bullets.length < 2 && 'role-card--static', isContinued && 'role-card--continued']}>
-                <div class="role-header">
-                  <p class="tl-dates-mobile mono">
-                    {dateRange}
-                    <span class="tl-duration-mobile"> · {duration}</span>
-                    {role.current && <span class="tl-badge mono tl-badge--inline">Current</span>}
-                  </p>
-
-                  <div class="role-card-top">
-                    <h2 class="role-title">{role.title}</h2>
-                    <span class="role-tag mono">{role.employmentType}</span>
-                  </div>
-
-                  {isFirstInCompany ? (
-                    <p class="role-company">
-                      {group.companyUrl ? (
-                        <a href={group.companyUrl} target="_blank" rel="noopener" class="company-link">{group.company}</a>
-                      ) : (
-                        group.company
-                      )}
-                    </p>
-                  ) : (
-                    <p class="role-company role-company--continued">
-                      Earlier role at{' '}
-                      {group.companyUrl ? (
-                        <a href={group.companyUrl} target="_blank" rel="noopener" class="company-link">{group.company}</a>
-                      ) : (
-                        group.company
-                      )}
-                    </p>
-                  )}
-                </div>
-
-                {role.bullets.length > 1 ? (
-                  <>
-                    <p class="role-preview" aria-hidden="true" set:html={withNumbers(role.bullets[0])} />
-                    <div class="role-body" id={`role-${group.company.replace(/\W+/g, '')}-${roleIndex}`}>
-                      <div class="role-body-inner">
-                        <ul class="bullets">
-                          {role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
-                        </ul>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      class="role-toggle mono"
-                      aria-expanded={role.current ? 'true' : 'false'}
-                      aria-controls={`role-${group.company.replace(/\W+/g, '')}-${roleIndex}`}
-                    >
-                      <span class="role-toggle-label">{role.current ? 'Show less' : 'Read the full story'}</span>
-                      <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg>
-                    </button>
-                  </>
-                ) : (
-                  <ul class="bullets">
-                    {role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
-                  </ul>
-                )}
-              </article>
             </div>
-          );
-        })}
-      </div>
-    ))}
+
+            <p class="hint mono">
+              <span class="hint-locked">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                Locked
+              </span>
+              <span class="hint-open">Read the full story</span>
+              <span class="hint-close">Show less</span>
+              <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg>
+            </p>
+          </article>
+        </li>
+      ))}
+    </ol>
+
+    <img class="player" src={withBase('/photo.png')} alt="" width="44" height="44" aria-hidden="true" />
   </div>
-
-  <MobileTimelineNav ariaLabel="Jump between roles" />
-
-  <p class="empty-state mono" hidden>No roles match this filter.</p>
 
 </div>
 </Layout>
 
 <script>
-  const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
-  const rows = document.querySelectorAll<HTMLElement>('.timeline-row');
-  const groups = document.querySelectorAll<HTMLElement>('.company-group');
-  const emptyState = document.querySelector<HTMLElement>('.empty-state');
+  const NS = 'http://www.w3.org/2000/svg';
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const map = document.getElementById('map') as HTMLElement;
+  const svg = map.querySelector('.map-svg') as SVGSVGElement;
+  const stopEls = Array.from(map.querySelectorAll<HTMLElement>('.stop'));
+  const nodes = stopEls.map((s) => s.querySelector<HTMLButtonElement>('.node')!);
+  const cards = stopEls.map((s) => s.querySelector<HTMLElement>('.card')!);
+  const titles = stopEls.map((s) => s.querySelector('.title')!.textContent ?? '');
+  const companies = stopEls.map((s) => s.querySelector('.company')!.textContent?.trim() ?? '');
+  const player = map.querySelector('.player') as HTMLElement;
+  const status = document.getElementById('map-status') as HTMLElement;
+  const fastBtn = document.getElementById('fast-travel') as HTMLButtonElement;
+  const restartBtn = document.getElementById('restart') as HTMLButtonElement;
+  const last = stopEls.length - 1;
+  const KEY = 'experience-map';
 
-  // Click a role to read its full story; one open at a time
-  const cards = document.querySelectorAll<HTMLElement>('.role-card:not(.role-card--static)');
-  function setOpen(card: HTMLElement, open: boolean) {
-    card.classList.toggle('is-open', open);
-    const btn = card.querySelector<HTMLButtonElement>('.role-toggle');
-    const label = card.querySelector<HTMLElement>('.role-toggle-label');
-    btn?.setAttribute('aria-expanded', String(open));
-    if (label) label.textContent = open ? 'Show less' : 'Read the full story';
+  let maxUnlocked = 0; // furthest stop reached
+  let at = 0;          // where the player is standing
+  let openIdx = 0;     // which stop shows its details
+  let busy = false;
+  let base: SVGPathElement[] = [];
+  let prog: SVGPathElement[] = [];
+
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(KEY) ?? 'null');
+    if (saved && Number.isInteger(saved.max) && Number.isInteger(saved.at)) {
+      maxUnlocked = Math.min(Math.max(saved.max, 0), last);
+      at = Math.min(Math.max(saved.at, 0), maxUnlocked);
+      openIdx = at;
+    }
+  } catch {}
+
+  const save = () => {
+    try { sessionStorage.setItem(KEY, JSON.stringify({ max: maxUnlocked, at })); } catch {}
+  };
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, reduced ? 0 : ms));
+  const say = (msg: string) => { status.textContent = msg; };
+
+  function center(el: HTMLElement) {
+    const m = map.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return { x: r.left - m.left + r.width / 2, y: r.top - m.top + r.height / 2 };
   }
-  cards.forEach((card) => {
-    card.addEventListener('click', (e) => {
+
+  function placePlayer(x: number, y: number) {
+    player.style.transform = `translate(${x - 22}px, ${y - 22}px)`;
+  }
+
+  function buildPaths() {
+    const w = map.clientWidth;
+    const h = map.clientHeight;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.replaceChildren();
+    base = [];
+    prog = [];
+    for (let i = 0; i < last; i++) {
+      const a = center(nodes[i]);
+      const b = center(nodes[i + 1]);
+      const my = (a.y + b.y) / 2;
+      const d = `M ${a.x} ${a.y} C ${a.x} ${my}, ${b.x} ${my}, ${b.x} ${b.y}`;
+
+      const track = document.createElementNS(NS, 'path');
+      track.setAttribute('d', d);
+      track.style.cssText = 'fill:none;stroke:var(--border);stroke-width:4;stroke-linecap:round;stroke-dasharray:2 10';
+      svg.appendChild(track);
+      base.push(track);
+
+      const line = document.createElementNS(NS, 'path');
+      line.setAttribute('d', d);
+      const len = track.getTotalLength();
+      line.style.cssText = `fill:none;stroke:var(--text);stroke-width:4;stroke-linecap:round;stroke-dasharray:${len};stroke-dashoffset:${i < maxUnlocked ? 0 : len}`;
+      svg.appendChild(line);
+      prog.push(line);
+    }
+    const p = center(nodes[at]);
+    placePlayer(p.x, p.y);
+  }
+
+  function render() {
+    stopEls.forEach((el, i) => {
+      const locked = i > maxUnlocked;
+      const open = i === openIdx && !locked;
+      el.classList.toggle('is-locked', locked);
+      el.classList.toggle('is-done', !locked && i !== at);
+      el.classList.toggle('is-here', i === at);
+      el.classList.toggle('is-open', open);
+      nodes[i].setAttribute('aria-expanded', String(open));
+      nodes[i].toggleAttribute('data-locked', locked);
+    });
+    fastBtn.disabled = busy || (at === last && maxUnlocked === last);
+    restartBtn.disabled = busy || (maxUnlocked === 0 && at === 0);
+  }
+
+  function walk(seg: number, dir: 1 | -1, ms: number): Promise<void> {
+    if (dir === 1) {
+      prog[seg].style.transition = reduced ? 'none' : `stroke-dashoffset ${ms}ms ease-in-out`;
+      prog[seg].style.strokeDashoffset = '0';
+    }
+    return new Promise((resolve) => {
+      if (reduced) {
+        const end = center(nodes[dir === 1 ? seg + 1 : seg]);
+        placePlayer(end.x, end.y);
+        resolve();
+        return;
+      }
+      const t0 = performance.now();
+      const frame = (now: number) => {
+        const t = Math.min(1, (now - t0) / ms);
+        const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const path = base[seg];
+        const len = path.getTotalLength();
+        const pt = path.getPointAtLength((dir === 1 ? e : 1 - e) * len);
+        placePlayer(pt.x, pt.y);
+        // keep the player in view while walking
+        const mapTop = map.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: mapTop + pt.y - window.innerHeight / 2, behavior: 'instant' as ScrollBehavior });
+        if (t < 1) requestAnimationFrame(frame);
+        else resolve();
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+
+  async function travelTo(target: number, ms: number) {
+    while (at !== target) {
+      const dir: 1 | -1 = target > at ? 1 : -1;
+      await walk(dir === 1 ? at : at - 1, dir, ms);
+      at += dir;
+      if (dir === 1) maxUnlocked = Math.max(maxUnlocked, at);
+      render();
+    }
+  }
+
+  function describe(i: number) {
+    return `${titles[i]} · ${companies[i]}`;
+  }
+
+  async function goTo(i: number, ms = 650) {
+    // close the current card first so the layout is steady while walking
+    openIdx = -1;
+    render();
+    await sleep(340);
+    await travelTo(i, ms);
+    openIdx = i;
+    render();
+    save();
+    say(`You are at stop ${i + 1} of ${last + 1}: ${describe(i)}`);
+    await sleep(120);
+    cards[i].scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+  }
+
+  async function select(i: number) {
+    if (busy) return;
+    if (i > maxUnlocked + 1) {
+      const el = stopEls[i];
+      el.classList.remove('shake');
+      void el.offsetWidth;
+      el.classList.add('shake');
+      say(`Locked. Reach “${titles[maxUnlocked + 1]}” first, or use fast travel.`);
+      return;
+    }
+    if (i === at) {
+      openIdx = openIdx === i ? -1 : i;
+      render();
+      return;
+    }
+    busy = true;
+    render();
+    await goTo(i);
+    busy = false;
+    render();
+  }
+
+  stopEls.forEach((el, i) => {
+    el.querySelector('.card')!.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('a')) return;
-      const willOpen = !card.classList.contains('is-open');
-      cards.forEach((c) => setOpen(c, false));
-      setOpen(card, willOpen);
-      document.dispatchEvent(new CustomEvent('timeline-rows-changed'));
+      select(i);
     });
+    nodes[i].addEventListener('click', () => select(i));
   });
 
-  filterBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const filter = btn.dataset.filter ?? 'all';
-
-      filterBtns.forEach((b) => b.classList.toggle('is-active', b === btn));
-
-      let visibleCount = 0;
-      rows.forEach((row) => {
-        const show = filter === 'all' || row.dataset.employmentType === filter;
-        row.classList.toggle('is-hidden', !show);
-        if (show) visibleCount += 1;
-      });
-
-      groups.forEach((group) => {
-        const hasVisible = group.querySelectorAll('.timeline-row:not(.is-hidden)').length > 0;
-        group.classList.toggle('is-hidden', !hasVisible);
-      });
-
-      if (emptyState) emptyState.hidden = visibleCount > 0;
-      document.dispatchEvent(new CustomEvent('timeline-rows-changed'));
-    });
+  fastBtn.addEventListener('click', async () => {
+    if (busy) return;
+    busy = true;
+    render();
+    say('Fast travelling…');
+    await goTo(last, 380);
+    busy = false;
+    render();
   });
+
+  restartBtn.addEventListener('click', () => {
+    if (busy) return;
+    maxUnlocked = 0;
+    at = 0;
+    openIdx = 0;
+    save();
+    buildPaths();
+    render();
+    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    say('Back at the start.');
+  });
+
+  // The map changes height when a card opens; redraw the path to match.
+  let raf = 0;
+  const redraw = () => {
+    if (busy) return;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(buildPaths);
+  };
+  new ResizeObserver(redraw).observe(map);
+  window.addEventListener('load', redraw);
+  document.fonts?.ready.then(redraw);
+
+  buildPaths();
+  render();
+  say(`You are at stop ${at + 1} of ${last + 1}: ${describe(at)}`);
 </script>
 
 <style>
-  .header { margin-bottom: 1.75rem; }
-  h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.025em; color: #111111; margin-bottom: 0.35rem; }
-  .sub { font-size: 0.88rem; color: #999999; }
+  .map-page {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 6rem 1.5rem 3rem;
+  }
 
-  .filters {
+  .header { margin-bottom: 1.5rem; }
+  h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.025em; color: var(--text); margin-bottom: 0.35rem; }
+  .sub { font-size: 0.9rem; color: var(--text-3); max-width: 38rem; line-height: 1.7; }
+
+  .controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 2rem;
   }
-
-  .filter-btn {
-    font-size: 0.68rem;
+  .ctl {
+    font-size: 0.72rem;
     letter-spacing: 0.03em;
-    color: #555555;
-    background: #ffffff;
-    border: 1px solid #e4e4e4;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
     border-radius: 999px;
-    padding: 0.35rem 0.75rem;
+    padding: 0.45rem 0.9rem;
+    min-height: 2.25rem;
     cursor: pointer;
-    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    transition: border-color 0.15s, background 0.15s;
   }
-  .filter-btn:hover {
-    color: #111111;
-    border-color: #c8c8c8;
-    background: #f7f7f7;
-  }
-  .filter-btn.is-active {
-    color: #ffffff;
-    background: #111111;
-    border-color: #111111;
-  }
-
-  .empty-state {
-    font-size: 0.78rem;
-    color: #999999;
-    text-align: center;
-    padding: 2rem 0 0.5rem;
+  .ctl:hover:not(:disabled) { border-color: var(--text-3); background: var(--surface); }
+  .ctl:disabled { opacity: 0.45; cursor: default; }
+  .status {
+    flex: 1 1 14rem;
+    min-width: 0;
+    font-size: 0.72rem;
+    color: var(--text-3);
+    margin-left: 0.25rem;
   }
 
   .mono { font-family: "IBM Plex Mono", monospace; }
 
-  .company-group {
-    display: contents;
-  }
-  .company-group.is-hidden {
-    display: none;
-  }
+  /* ── Map ── */
+  .map { position: relative; }
+  .map-svg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: visible; }
 
-  .timeline-row--continued {
-    margin-top: -0.35rem;
-  }
+  .stops { list-style: none; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2.25rem; }
 
-  .tl-badge--inline {
-    display: inline-block;
-    margin: 0 0 0 0.4rem;
-    vertical-align: middle;
-  }
+  .stop { position: relative; min-height: 5.5rem; }
 
-  .role-header {
-    margin-bottom: 0.85rem;
-  }
-
-  .role-card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.85rem;
-    margin-bottom: 0.2rem;
-  }
-
-  .role-title {
-    flex: 1;
-    min-width: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: #111111;
-    letter-spacing: -0.015em;
-    line-height: 1.3;
-    margin: 0;
-  }
-
-  .role-tag {
-    flex-shrink: 0;
-    max-width: 45%;
-    font-size: 0.72rem;
-    letter-spacing: 0.03em;
-    color: #555555;
-    border: 1px solid #e4e4e4;
-    border-radius: 3px;
-    padding: 0.18rem 0.55rem;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .role-company {
-    font-size: 0.9rem;
-    color: #666666;
-    line-height: 1.55;
-    margin: 0;
-  }
-
-  .role-company--continued {
-    font-size: 0.8rem;
-    color: #888888;
-  }
-
-  .company-link {
-    color: inherit;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    text-decoration-color: #c8c8c8;
-    transition: color 0.15s, text-decoration-color 0.15s;
-  }
-  .company-link:hover {
-    color: #111111;
-    text-decoration-color: #888888;
-  }
-
-  .role-card--current {
-    border-color: #c0c0c0;
-    box-shadow: inset 3px 0 0 #111111;
-  }
-
-  .bullets {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    margin: 0;
-    padding: 0;
-  }
-  .bullets li {
-    font-size: 0.9rem;
-    color: #555555;
-    line-height: 1.7;
-    padding-left: 1rem;
-    position: relative;
-  }
-  .bullets li::before {
-    content: '–';
+  .node {
     position: absolute;
-    left: 0;
-    color: #cccccc;
-  }
-
-  .bullets :global(.num) {
-    font-weight: 600;
-    color: #111111;
-    background: #f1efe9;
-    border-radius: 3px;
-    padding: 0 0.2em;
-  }
-
-  .role-card:not(.role-card--static) { cursor: pointer; }
-
-  /* Collapsed: a two-line preview of the first highlight */
-  .role-preview {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #555555;
-    line-height: 1.7;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .role-card.is-open .role-preview { display: none; }
-  .role-preview :global(.num) {
-    font-weight: 600;
-    color: #111111;
-    background: #f1efe9;
-    border-radius: 3px;
-    padding: 0 0.2em;
-  }
-
-  /* Smooth height animation: 0fr -> 1fr */
-  .role-body {
+    top: 0.6rem;
+    z-index: 2;
+    width: 52px;
+    height: 52px;
+    margin-left: -26px;
     display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.3s ease;
+    place-items: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--bg);
+    border: 2px solid var(--text);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
   }
-  .role-card.is-open .role-body { grid-template-rows: 1fr; }
-  .role-body-inner { overflow: hidden; min-height: 0; }
+  .node svg { width: 20px; height: 20px; grid-area: 1 / 1; display: none; }
+  .node-num { grid-area: 1 / 1; }
 
-  .role-toggle {
-    display: inline-flex;
+  .stop--a .node { left: 20%; }
+  .stop--b .node { left: 80%; }
+
+  .stop--a .card { margin-left: 30%; width: 56%; }
+  .stop--b .card { margin-left: 14%; width: 56%; }
+
+  .card {
+    padding: 1.1rem 1.25rem 0.9rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+  }
+  @media (hover: hover) {
+    .stop:not(.is-locked):not(.is-open) .card:hover { border-color: var(--text-3); }
+  }
+  .stop.is-open .card { border-color: var(--text-3); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06); cursor: default; }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.4rem;
-    min-height: 2rem;
-    margin-top: 0.5rem;
-    padding: 0;
+    font-size: 0.72rem;
+    color: var(--text-3);
+    margin-bottom: 0.45rem;
+  }
+  .badge {
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1rem 0.35rem;
+    line-height: 1.2;
+  }
+  .title { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; color: var(--text); }
+  .company { font-size: 0.9rem; color: var(--text-2); margin-top: 0.1rem; }
+  .company-link { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--border); }
+  .company-link:hover { color: var(--text); text-decoration-color: var(--text-3); }
+
+  /* details */
+  .card-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+  .stop.is-open .card-body { grid-template-rows: 1fr; }
+  .card-body-inner { overflow: hidden; min-height: 0; }
+  .stop.is-open .card-body-inner { padding-top: 0.85rem; }
+  .tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    color: var(--text-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.15rem 0.5rem;
+    margin-bottom: 0.7rem;
+  }
+  .bullets { gap: 0.55rem; }
+  .bullets :global(li) { font-size: 0.9rem; line-height: 1.7; }
+  .bullets :global(.num) {
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface);
+    border-radius: 3px;
+    padding: 0 0.2em;
+    outline: 1px solid var(--border);
+  }
+
+  .hint {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 1.9rem;
+    margin-top: 0.4rem;
     font-size: 0.72rem;
     letter-spacing: 0.02em;
-    color: #111111;
-    background: none;
-    border: 0;
-    cursor: pointer;
+    color: var(--text);
   }
-  .chev { width: 0.95rem; height: 0.95rem; transition: transform 0.25s ease; }
-  .role-card.is-open .chev { transform: rotate(180deg); }
+  .hint svg { width: 0.9rem; height: 0.9rem; }
+  .hint-locked, .hint-close { display: none; align-items: center; gap: 0.35rem; }
+  .chev { transition: transform 0.25s ease; }
+  .stop.is-open .chev { transform: rotate(180deg); }
+  .stop.is-open .hint-open { display: none; }
+  .stop.is-open .hint-close { display: inline; }
+  .stop.is-locked .hint-open { display: none; }
+  .stop.is-locked .hint-locked { display: inline-flex; }
+  .stop.is-locked .chev { display: none; }
+  .stop.is-locked .hint { color: var(--text-3); }
 
-  @media (--mobile) {
-    .timeline-row--continued { margin-top: 0; }
+  /* node states */
+  .stop.is-done .node { background: var(--text); color: var(--bg); }
+  .stop.is-done .node .node-num { display: none; }
+  .stop.is-done .node .node-check { display: block; }
+  .stop.is-here .node { background: var(--bg); border-width: 3px; animation: here-ring 2.2s ease-out infinite; }
+  .stop.is-locked .node { border-style: dashed; border-color: var(--text-3); color: var(--text-3); cursor: not-allowed; }
+  .stop.is-locked .node .node-num { display: none; }
+  .stop.is-locked .node .node-lock { display: block; }
+  .stop.is-locked .card { opacity: 0.55; cursor: not-allowed; }
+  .stop.is-here .node .node-num { opacity: 0; }
+
+  @keyframes here-ring {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--text) 35%, transparent); }
+    70%  { box-shadow: 0 0 0 14px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
+  .stop.shake .card, .stop.shake .node { animation: shake 0.35s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  .player {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--text);
+    background: var(--bg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+  }
+
+  @media (max-width: 640px) {
+    .map-page { padding: 5.5rem 1.1rem 2.5rem; }
+    .stops { gap: 1.5rem; }
+    .stop--a .node { left: 26px; }
+    .stop--b .node { left: 42px; }
+    .stop--a .card, .stop--b .card { margin-left: 74px; width: auto; }
+    .node { width: 46px; height: 46px; margin-left: -23px; }
+    .player { width: 40px; height: 40px; }
+    .card { padding: 1rem 1rem 0.8rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .role-body, .chev { transition: none; }
+    .card-body, .chev, .card, .node { transition: none; }
+    .stop.is-here .node, .stop.shake .card, .stop.shake .node { animation: none; }
   }
-
-  :global([data-theme="dark"]) h1 { color: #e8e8e8; }
-  :global([data-theme="dark"]) .sub { color: #555555; }
-  :global([data-theme="dark"]) .filter-btn {
-    color: #909090;
-    background: #1a1a1a;
-    border-color: #2a2a2a;
-  }
-  :global([data-theme="dark"]) .filter-btn:hover {
-    color: #e0e0e0;
-    border-color: #484848;
-    background: #222222;
-  }
-  :global([data-theme="dark"]) .filter-btn.is-active {
-    color: #111111;
-    background: #e8e8e8;
-    border-color: #e8e8e8;
-  }
-  :global([data-theme="dark"]) .empty-state { color: #555555; }
-  :global([data-theme="dark"]) .role-title { color: #e0e0e0; }
-  :global([data-theme="dark"]) .role-tag {
-    color: #707070;
-    border-color: #2a2a2a;
-  }
-  :global([data-theme="dark"]) .role-company { color: #808080; }
-  :global([data-theme="dark"]) .role-company--continued { color: #555555; }
-  :global([data-theme="dark"]) .company-link { text-decoration-color: #3a3a3a; }
-  :global([data-theme="dark"]) .company-link:hover {
-    color: #e0e0e0;
-    text-decoration-color: #707070;
-  }
-  :global([data-theme="dark"]) .role-card--current {
-    border-color: #484848;
-    box-shadow: inset 3px 0 0 #e8e8e8;
-  }
-  :global([data-theme="dark"]) .bullets li { color: #909090; }
-  :global([data-theme="dark"]) .bullets li::before { color: #3a3a3a; }
-  :global([data-theme="dark"]) .bullets :global(.num) { color: #e8e8e8; background: #2a2a2a; }
-  :global([data-theme="dark"]) .role-toggle { color: #e0e0e0; }
-  :global([data-theme="dark"]) .role-preview { color: #909090; }
-  :global([data-theme="dark"]) .role-preview :global(.num) { color: #e8e8e8; background: #2a2a2a; }
 </style>
