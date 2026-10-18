@@ -1,4 +1,4 @@
-export type EmploymentType = 'Full Time' | 'Part Time' | 'Contract' | 'Internship';
+export type EmploymentType = 'Full Time' | 'Part Time' | 'Contract' | 'Internship' | 'Education';
 
 export interface Role {
   title: string;
@@ -8,6 +8,8 @@ export interface Role {
   start: string;
   end: string;
   current: boolean;
+  /** Overrides the computed tenure, e.g. for year-only dates. */
+  duration?: string;
   bullets: string[];
 }
 
@@ -162,6 +164,24 @@ export const experience: Role[] = [
       'Designed and implemented a fact-checking ML model, scraping news articles from reputable sources.',
       'Compared scraped articles against user-input news using textual entailment analysis to enhance accuracy.',
       'Developed skills in machine learning, data scraping, and NLP.',
+    ],
+  },
+];
+
+/** Shown as the first level on the Experience map. Kept apart from `experience` so job lists stay jobs only. */
+export const education: Role[] = [
+  {
+    title: 'Engineering',
+    company: 'BITS Pilani',
+    companyUrl: 'https://www.bits-pilani.ac.in',
+    employmentType: 'Education',
+    start: '2019',
+    end: '2023',
+    current: false,
+    duration: '4 yrs',
+    bullets: [
+      'Four years of engineering at BITS Pilani.',
+      'Figured out that traditional knowledge alone would not be enough — I had to take things into my own hands.',
     ],
   },
 ];

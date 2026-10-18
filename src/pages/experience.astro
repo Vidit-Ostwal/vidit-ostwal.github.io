@@ -1,7 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { withBase } from '../lib/paths';
-import { experience, formatDateRange, formatDuration } from '../data/experience';
+import { education, experience, formatDateRange, formatDuration, type Role } from '../data/experience';
+
+const durationOf = (role: Role) => role.duration ?? formatDuration(role.start, role.end, role.current);
 
 /** Left to right, like progress: oldest first, then where I am now, then what's locked ahead. */
 const upcoming = [
@@ -9,8 +11,8 @@ const upcoming = [
   { title: '???', company: 'Unlocks after the next level.' },
 ];
 const stops = [
-  ...[...experience].reverse().map((role, i) => ({ locked: false as const, level: i + 1, role })),
-  ...upcoming.map((u, i) => ({ locked: true as const, level: experience.length + i + 1, ...u })),
+  ...[...education, ...[...experience].reverse()].map((role, i) => ({ locked: false as const, level: i + 1, role })),
+  ...upcoming.map((u, i) => ({ locked: true as const, level: education.length + experience.length + i + 1, ...u })),
 ];
 
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -88,7 +90,7 @@ const withNumbers = (t: string) =>
                 )}
               </p>
               <p class="detail-dates mono">
-                {formatDateRange(stop.role.start, stop.role.end)} · {formatDuration(stop.role.start, stop.role.end, stop.role.current)}
+                {formatDateRange(stop.role.start, stop.role.end)} · {durationOf(stop.role)}
               </p>
               <p class="tag mono">{stop.role.employmentType}</p>
             </div>
