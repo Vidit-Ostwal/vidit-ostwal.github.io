@@ -182,6 +182,7 @@ export const education: Role[] = [
     bullets: [
       'Four years of engineering at BITS Pilani.',
       'Figured out that traditional knowledge alone would not be enough — I had to take things into my own hands.',
+      'Just kidding — it was an awesome, lifetime experience.',
     ],
   },
 ];
