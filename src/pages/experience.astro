@@ -100,7 +100,7 @@ const withNumbers = (t: string) =>
       ))}
     </ol>
 
-    <img class="player" src={withBase('/photo.png')} alt="" width="44" height="44" aria-hidden="true" />
+    <img class="player" src={withBase('/photo-small.png')} alt="" width="44" height="44" decoding="async" aria-hidden="true" />
   </div>
 
 </div>
@@ -126,6 +126,7 @@ const withNumbers = (t: string) =>
   let at = nowIdx;      // where the player is standing
   let openIdx = nowIdx; // which stop shows its details
   let busy = false;
+  let walking = false;
   let base: SVGPathElement[] = [];
 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, reduced ? 0 : ms));
@@ -175,54 +176,89 @@ const withNumbers = (t: string) =>
     stopEls.forEach((el, i) => {
       const open = i === openIdx && !locked[i];
       el.classList.toggle('is-locked', locked[i]);
-      el.classList.toggle('is-done', !locked[i] && i !== at);
-      el.classList.toggle('is-here', i === at);
+      el.classList.toggle('is-done', !locked[i] && (i !== at || walking));
+      el.classList.toggle('is-here', i === at && !walking);
       el.classList.toggle('is-open', open);
       nodes[i].setAttribute('aria-expanded', String(open));
     });
     nowBtn.disabled = busy || at === nowIdx;
   }
 
-  function walk(seg: number, dir: 1 | -1, ms: number): Promise<void> {
+  /**
+   * Walk the whole route in one continuous motion: a single ease over the full
+   * distance (no stop at every node), one rAF loop, no layout reads per frame.
+   */
+  function walkRoute(from: number, to: number): Promise<void> {
+    const dir: 1 | -1 = to > from ? 1 : -1;
+    const segs: { path: SVGPathElement; len: number; dir: 1 | -1 }[] = [];
+    for (let i = from; i !== to; i += dir) {
+      const path = base[dir === 1 ? i : i - 1];
+      segs.push({ path, len: path.getTotalLength(), dir });
+    }
+    const total = segs.reduce((n, s) => n + s.len, 0);
+
+    if (reduced || total === 0) {
+      const end = center(nodes[to]);
+      placePlayer(end.x, end.y);
+      return Promise.resolve();
+    }
+
+    const duration = Math.min(2600, Math.max(700, (total / 900) * 1000));
+    const mapTop = map.getBoundingClientRect().top + window.scrollY; // read once
+    const htmlStyle = document.documentElement.style;
+    const prevBehavior = htmlStyle.scrollBehavior;
+    htmlStyle.scrollBehavior = 'auto'; // our own camera, not the smooth-scroll CSS
+    map.classList.add('is-walking');
+
     return new Promise((resolve) => {
-      if (reduced) {
-        const end = center(nodes[dir === 1 ? seg + 1 : seg]);
-        placePlayer(end.x, end.y);
-        resolve();
-        return;
-      }
       const t0 = performance.now();
+      let camY = window.scrollY;
       const frame = (now: number) => {
-        const t = Math.min(1, (now - t0) / ms);
-        const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        const path = base[seg];
-        const pt = path.getPointAtLength((dir === 1 ? e : 1 - e) * path.getTotalLength());
+        const t = Math.min(1, (now - t0) / duration);
+        const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // easeInOutCubic
+        let d = e * total;
+        let seg = segs[0];
+        for (const s of segs) {
+          seg = s;
+          if (d <= s.len) break;
+          d -= s.len;
+        }
+        const along = seg.dir === 1 ? d : seg.len - d;
+        const pt = seg.path.getPointAtLength(Math.min(Math.max(along, 0), seg.len));
         placePlayer(pt.x, pt.y);
-        // keep the player in view while walking
-        const mapTop = map.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top: mapTop + pt.y - window.innerHeight / 2, behavior: 'instant' as ScrollBehavior });
+
+        // smooth camera: ease toward keeping the player mid-screen
+        const targetY = mapTop + pt.y - window.innerHeight / 2;
+        camY += (targetY - camY) * 0.18;
+        window.scrollTo(0, camY);
+
         if (t < 1) requestAnimationFrame(frame);
-        else resolve();
+        else {
+          htmlStyle.scrollBehavior = prevBehavior;
+          map.classList.remove('is-walking');
+          resolve();
+        }
       };
       requestAnimationFrame(frame);
     });
   }
 
-  async function goTo(target: number, ms = 650) {
-    // close the open card first so the layout is steady while walking
+  async function goTo(target: number) {
+    // close the open card first, let the layout settle, then measure fresh
     openIdx = -1;
     render();
     await sleep(340);
-    while (at !== target) {
-      const dir: 1 | -1 = target > at ? 1 : -1;
-      await walk(dir === 1 ? at : at - 1, dir, ms);
-      at += dir;
-      render();
-    }
+    buildPaths();
+    walking = true;
+    render();
+    await walkRoute(at, target);
+    at = target;
+    walking = false;
+    buildPaths();
     openIdx = target;
     render();
     say(target === nowIdx ? `Right now: ${describe(target)}` : `Looking back at: ${describe(target)}`);
-    await sleep(120);
+    await sleep(360); // let the card finish opening before centring it
     cards[target].scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
   }
 
@@ -260,7 +296,7 @@ const withNumbers = (t: string) =>
     if (busy) return;
     busy = true;
     render();
-    await goTo(nowIdx, 380);
+    await goTo(nowIdx);
     busy = false;
     render();
   });
@@ -324,7 +360,7 @@ const withNumbers = (t: string) =>
   .mono { font-family: "IBM Plex Mono", monospace; }
 
   /* ── Map ── */
-  .map { position: relative; }
+  .map { position: relative; overflow-anchor: none; }
   .map-svg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: visible; }
 
   .stops { list-style: none; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2.25rem; }
@@ -484,7 +520,9 @@ const withNumbers = (t: string) =>
     background: var(--bg);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     pointer-events: none;
+    will-change: transform;
   }
+  .map.is-walking .node, .map.is-walking .card { animation: none; transition: none; }
 
   @media (max-width: 640px) {
     .map-page { padding: 5.5rem 1.1rem 2.5rem; }
