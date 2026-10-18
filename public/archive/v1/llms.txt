@@ -1,0 +1,227 @@
+# Vidit Ostwal
+
+> ML/AI Engineer building agentic AI systems and RL environments.
+
+Site: https://vidit-ostwal.github.io
+Generated: Aug 9, 2026
+
+---
+
+## Home
+
+URL: https://vidit-ostwal.github.io/
+Role: ML / AI Engineer
+
+### My Story
+
+I graduated from BITS Pilani in 2023 and spent the next few years as a Gen AI Engineer — iterating on agents, RAG pipelines, and fine-tuning. Outside of work, I contribute to open source projects.
+
+Around January 2025, I started exploring CrewAI. I really wanted to understand the core of how agent orchestration frameworks are built. I went deep — contributed 35+ merged PRs, became the 11th contributor on the open-source repo, and placed 2nd runner-up at their Fall Hackathon. By December 2025, I had enough credibility to join the review team for a book on the framework that's about to be published. In August 2026, I joined CrewAI full-time as an Open Source Developer.
+
+Along the way, my curiosity also shifted toward RL environments. I started exploring Prime Intellect and OpenEnv, built a few playful environments, and I'm excited to keep building environments genuinely useful for training frontier models.
+
+I've contributed to CrewAI, Ragas, GitHub MCP, OpenEnv, and Prime Intellect. Check out my GitHub to see the open-source work. I actively share what I am building on X.
+
+### Links
+
+- GitHub: https://github.com/Vidit-Ostwal
+- LinkedIn: https://www.linkedin.com/in/viditostwal/
+- X: https://x.com/ViditOstwal
+- Email: mailto:viditostwal@gmail.com
+- Anonymous feedback: https://www.admonymous.co/vidit-ostwal
+
+### Open-source contributions
+
+- CrewAI: https://github.com/crewAIInc/crewAI
+- Ragas: https://github.com/vibrantlabsai/ragas
+- GitHub MCP: https://github.com/github/github-mcp-server
+- OpenEnv: https://github.com/meta-pytorch/OpenEnv
+- Prime Intellect: https://github.com/PrimeIntellect-ai/verifiers
+
+
+## Experience
+
+URL: https://vidit-ostwal.github.io/experience
+
+
+
+### Open Source Developer — CrewAI
+Type: Full Time
+Period: Aug 2026 — Present (current)
+Company: https://www.crewai.com
+
+- Working on the CrewAI open-source agent orchestration framework — contributing features, reviews, and core improvements.
+
+### Teaching Assistant — Outskill
+Type: Contract
+Period: Aug 2026 — Aug 2026
+Company: https://www.outskill.com
+
+- TA consultant for E6 and E7 cohorts — helped design course content and ran breakout rooms, quizzes, and live sessions.
+- Supported 320+ learners, resolving doubts in group settings and 1-on-1 sessions.
+- Covered RAG, Hugging Face, agents, MCP, observability, and deployments.
+
+### Machine Learning — Generative AI — Piramal Capital & Housing Finance Limited
+Type: Full Time
+Period: Nov 2023 — July 2026
+Company: https://www.piramalfinance.com
+
+- Designed and developed ARYA, an internal chatbot for the sales team using RAG and agentic systems — handled 500,000+ queries since launch and won Best AI Chatbot Product of the Year.
+- Built Daily-Huddle, a WhatsApp-integrated chatbot for Branch Sales Managers, reducing daily huddle time by 30%.
+- Designed CAM-Copilot, an underwriter assistant that summarises CIBIL reports, bank statements, and documents — cutting turnaround time by ~40%.
+- Currently building an internal Text-to-SQL chatbot inspired by Uber's QueryGPT.
+
+### Data Engineer — Piramal Capital & Housing Finance Limited
+Type: Full Time
+Period: Jul 2023 — Oct 2023
+Company: https://www.piramalfinance.com
+
+- Orchestrated data pipelines for real-time feature delivery to ML models, improving model performance by 15%.
+- Designed and deployed scalable microservices architecture, reducing feature serving latency by 20%.
+- Used Python and Spark to optimise end-to-end feature store functionality for various ML workloads.
+
+### Junior Associate — Indus Insights
+Type: Internship
+Period: Jan 2023 — Jun 2023
+Company: https://www.indusinsights.com
+
+- Developed dynamic forecasting models using delinquency buckets and economic adjustments for seasonal and annual client planning.
+- Led client meetings presenting findings on acquisition, response rates, and intent validation.
+- Took initiative on ad-hoc analyses beyond core responsibilities, demonstrating adaptability.
+
+### University Leader — Community Classroom
+Type: Internship
+Period: Jul 2021 — Sep 2021
+
+- Founded and led a university community promoting accessible education for all.
+- Conducted workshops to foster a programming culture on campus.
+
+### Project Leader — Machine Learning — Swecha
+Type: Internship
+Period: Jun 2021 — Jul 2021
+Company: https://swecha.org
+
+- Designed and implemented a fact-checking ML model, scraping news articles from reputable sources.
+- Compared scraped articles against user-input news using textual entailment analysis to enhance accuracy.
+- Developed skills in machine learning, data scraping, and NLP.
+
+
+## Projects
+
+URL: https://vidit-ostwal.github.io/projects
+
+
+
+### Automating 3D Survival Playing (Jun 2026)
+Autonomous vision-language agent that plays Survival 3D on YouTube Playables — screenshots the game, reads goals from the UI, plans movement, and executes keyboard actions in a loop.
+GitHub: https://github.com/Vidit-Ostwal/Automating-3DSurvival-Playing
+Launch post: https://x.com/ViditOstwal/status/2066886438399139953
+
+- Closed-loop agent on YouTube Playables: capture screenshot → read goal, progress, and inventory → plan 1–2 compass moves → send key presses → persist memory for the next cycle.
+- GoalMakerLLM reads the game UI and picks the fastest heading; PlannerLLM turns that into concrete NORTH/SOUTH/EAST/WEST steps — each component can use OpenAI or local Ollama vision models.
+- MemoryManager keeps JSON knowledge of mechanics, discoveries, and failed strategies; RunLogger saves per-cycle screenshots and run.json under outputs/.
+- Playwright + Chrome with a persistent browser profile for one-time YouTube login; uv-based Python 3.11+ setup with configurable GAME_URL and model providers.
+
+### Automatic UI Fixing Harness (Jun 2026)
+Black-box UI defect discovery for locally hosted web apps — Playwright exploration, LLM-assisted goals and verification, and an HTML findings report.
+GitHub: https://github.com/Vidit-Ostwal/Automatic-UI-Fixing-Harness
+
+- Four-phase pipeline: BFS exploration in a real browser → LLM converts paths into plain-English test goals → parallel goal-driven executors → per-step LLM verifier that emits structured findings.
+- Executors resolve instructions at runtime instead of replaying raw trajectories — app-agnostic design with Docker lifecycle management, DOM heuristics, and crash-detection fallbacks when the LLM is off.
+- Single CLI (run_harness.py) with composable modes — full pipeline, planner-only, run-goals, multi-pass rollout, and report-only — default target is a buggy Memos Docker image, but the harness generalizes to any local web app.
+
+### Understanding Prime Env Skill (May 2026)
+Skill and installer that produce a rich, self-contained HTML report explaining any Prime Intellect verifiers environment.
+GitHub: https://github.com/Vidit-Ostwal/Understanding-prime-env
+Live: https://www.npmjs.com/package/understanding-prime-env
+Launch post: https://x.com/ViditOstwal/status/2058570288993042477
+
+- Walks the environment source and emits environment_overview.html—dataset and task samples, every reward/metric with weights and scoring range, rollout logic from prompt to final score, and a full config reference.
+- Ships as an npm CLI (npx understanding-prime-env) with interactive setup plus flags for Claude Code, Cursor, Windsurf, GitHub Copilot, Zed, or all tools in one go.
+- Meant to be used from inside a verifiers env folder so you can ask your assistant to “explain this environment” and get an overview styled to match the Prime Intellect platform.
+
+### Price Negotiation RL (Mar 2026)
+RL environment where an LLM agent negotiates prices against an LLM-powered seller using real marketplace listings.
+GitHub: https://github.com/Vidit-Ostwal/price-negotiation-rl-OpenEnv
+Live: https://viditostwal-price-negotiation.hf.space/
+Launch post: https://x.com/ViditOstwal/status/2052078129263571069
+
+- Three difficulty levels (Easy / Medium / Hard) with varying zones of possible agreement — from a $480 ZOPA down to no ZOPA, testing walk-away discipline.
+- Six-component reward system on a [−1, 1] scale: surplus capture, walk-away correctness, output compliance, closing speed, opening offer quality, and concession smoothness.
+- Walk-away penalty weighted 5× — trains the agent to value discipline over forcing a bad deal.
+- Pure Python arithmetic grader ensures reproducibility; stochastic LLM sampling on both sides creates diverse training signal across episodes.
+- Deployable on Hugging Face Spaces, Docker, or locally via uv; ships with a browser playground showing real-time reward breakdowns.
+
+### Maze Bench (Apr 2026)
+Ice-sliding multi-player maze environment on OpenEnv for benchmarking planning and coordination in RL agents.
+GitHub: https://github.com/Vidit-Ostwal/Maze-Bench-OpenEnv
+Live: https://viditostwal-maze-env.hf.space/web/
+Launch post: https://x.com/ViditOstwal/status/2052373348706091170
+
+- Ice-sliding mechanics — agents slide until hitting a wall or another player, requiring multi-step lookahead over reactive movement.
+- Simultaneous multi-player movement; solved only when every player reaches an exit cell in the same phase.
+- Reward shaping penalises repeated actions (−1), reversals, and revisited board states scaled by prior visit count.
+- Standard OpenEnv reset()/step() API — compatible with any RL training loop without environment-specific wrappers.
+- Includes dataset validation tooling and GIF rendering from recorded rollouts for debugging agent trajectories.
+
+### MakeMyDocsBot (Oct 2025)
+CrewAI-powered bot that auto-syncs multilingual documentation across feature branches via a Git pre-push hook.
+GitHub: https://github.com/Vidit-Ostwal/MakeMyDocsBot
+Launch post: https://x.com/ViditOstwal/status/1984629588887212078
+
+- 2nd Runner-Up at the CrewAI Fall Agentic AI Challenge.
+- Detects English documentation changes and auto-generates synchronised translations (Korean, Brazilian Portuguese) with no manual intervention.
+- Runs as a Git pre-push hook — fires before any feature branch push, prompting the developer to sync docs before code lands.
+- Agent-based architecture with specialised CrewAI agents for change detection, translation, and cross-branch synchronisation.
+- Minimal setup: Python 3.12+, uv, and an OpenAI key — clone + uv sync + one hook registration.
+
+### RLM Demo (Jan 2026)
+Full-stack interactive console for demonstrating and chatting with Reinforcement Learning models and agentic systems.
+GitHub: https://github.com/Vidit-Ostwal/RLM-demo
+Live: https://huggingface.co/spaces/ViditOstwal/RLM-Interactive-Console
+Launch post: https://x.com/ViditOstwal/status/2014769757434872304
+
+- Chat interface for real-time interaction with RL models, backed by smolagents for agent-based reasoning and step-by-step trace display.
+- FastAPI backend (Python 3.12+) paired with a Next.js 15 / React 19 frontend — clean separation of model logic and UI.
+- Integrates Hugging Face datasets directly; response caching via JSON files keeps repeated queries fast.
+- Docker-first production deployment — single container exposes the full stack on port 7860, ready for Hugging Face Spaces.
+- Environment-driven config (HF token, model name) makes swapping the underlying model a one-line change.
+
+
+## Writing (external)
+
+URL: https://vidit-ostwal.github.io/blog
+
+- KL Divergence — Made Visual (Jun 12, 2026) — LLM Behavior & Sampling
+  An interactive visual guide to KL divergence: distributions, the formula, live computation, and how it shows up in LLMs and PPO training.
+  /blog/kl-divergence
+- MoE Routing Calculation (Excel Walkthrough) (Jan 25, 2026) — Mixture of Experts
+  Step-by-step Excel breakdown of router logits → top-k selection → normalized expert probabilities. Includes top-k masking, −∞ replacement, softmax, and final expert routing weights.
+  https://docs.google.com/spreadsheets/d/1jVwHc-BfOCop92g6tAfQOeTDb8Nfl3yunvQ3dwR1gI0/edit?usp=sharing
+- Building MakeMyDocsBot (Dec 20, 2025) — Agentic Systems & Tooling
+  Automated multi-language documentation sync across feature branches.
+  https://viditostwal.substack.com/p/building-makemydocsbot
+- How Does Temperature Change LLM Responses? (Jul 9, 2025) — LLM Behavior & Sampling
+  Effect of temperature on next-token probability distribution.
+  https://viditostwal.substack.com/p/how-does-temperature-changes-the
+- KV (Key-Value) Cache in Transformers (Jul 26, 2025) — Transformers & LLM Internals
+  Reducing inference latency using KV cache.
+  https://viditostwal.substack.com/p/kv-key-value-cache-in-transformers
+- Masked Self-Attention (Jun 25, 2025) — Transformers & LLM Internals
+  How masking enforces autoregressive generation in decoder-only transformers.
+  https://www.notion.so/viditostwal/Self-Attention-in-Transformers-216e478805d48005b515fac90e1d76e0
+- Self-Attention in Transformers (Jun 21, 2025) — Transformers & LLM Internals
+  How queries, keys, and values compute attention weights and why it matters.
+  https://www.notion.so/viditostwal/Self-Attention-in-Transformers-216e478805d48005b515fac90e1d76e0
+- Training the Tokenizer (Jun 3, 2025) — Transformers & LLM Internals
+  How tokenizers are trained and why the vocabulary choice shapes model behavior.
+  https://www.notion.so/207e478805d48090b34fcc5c8e8c3c01?v=207e478805d480cfac6c000ca3c80482
+
+
+## Site map
+
+- Home: https://vidit-ostwal.github.io/
+- Experience: https://vidit-ostwal.github.io/experience
+- Projects: https://vidit-ostwal.github.io/projects
+- Writing: https://vidit-ostwal.github.io/blog
+- LLM digest: https://vidit-ostwal.github.io/llms.txt

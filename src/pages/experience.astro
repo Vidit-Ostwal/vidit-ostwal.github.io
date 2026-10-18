@@ -1,339 +1,560 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import MobileTimelineNav from '../components/MobileTimelineNav.astro';
-import {
-  experience,
-  formatDateRange,
-  formatDuration,
-  groupExperienceByCompany,
-  type EmploymentType,
-} from '../data/experience';
+import { withBase } from '../lib/paths';
+import { education, experience, formatDateRange, formatDuration, type Role } from '../data/experience';
 
-const employmentTypeOrder: EmploymentType[] = ['Full Time', 'Part Time', 'Contract', 'Internship'];
-const employmentTypes = employmentTypeOrder.filter((type) =>
-  experience.some((role) => role.employmentType === type)
-);
+const durationOf = (role: Role) => role.duration ?? formatDuration(role.start, role.end, role.current);
 
-const companyGroups = groupExperienceByCompany(experience);
+/** Left to right, like progress: oldest first, then where I am now, then what's locked ahead. */
+const upcoming = [
+  { title: 'Coming soon', company: 'More to build, more to write.' },
+  { title: '???', company: 'Unlocks after the next level.' },
+];
+const stops = [
+  ...[...education, ...[...experience].reverse()].map((role, i) => ({ locked: false as const, level: i + 1, role })),
+  ...upcoming.map((u, i) => ({ locked: true as const, level: education.length + experience.length + i + 1, ...u })),
+];
+
+const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/** Highlight impact numbers (500,000+, 30%, ~40%, 320+) inside a bullet. */
+const withNumbers = (t: string) =>
+  esc(t).replace(/(~?\d[\d,]*\s?%|\d[\d,]*\+)/g, '<mark class="num">$1</mark>');
 ---
 
 <Layout title="Experience — Vidit Ostwal">
-<div class="page timeline-page">
+<div class="page stage">
 
-  <div class="fade-in header">
+  <div class="header">
     <h1>Experience</h1>
-    <p class="sub">Roles and what I built.</p>
+    <p class="sub">Follow the path from my first project to what I'm doing now. Tap any cleared level to see what I was up to there. Locked levels are what's next.</p>
   </div>
 
-  <div class="fade-in filters" role="group" aria-label="Filter by employment type">
-    <button type="button" class="filter-btn mono is-active" data-filter="all">All</button>
-    {employmentTypes.map((type) => (
-      <button type="button" class="filter-btn mono" data-filter={type}>{type}</button>
-    ))}
+  <div class="bar">
+    <button type="button" class="ctl mono" id="prev" aria-label="Previous level">←</button>
+    <button type="button" class="ctl mono" id="next" aria-label="Next level">→</button>
+    <button type="button" class="ctl mono" id="back-to-now">Back to now</button>
+    <p class="status mono" id="map-status" role="status" aria-live="polite"></p>
   </div>
 
-  <div class="timeline-wrap">
-    <div class="timeline-spine" aria-hidden="true"></div>
+  <div class="snake" id="snake">
+        <ol class="stops" id="stops">
+          {stops.map((stop, i) => (
+            <li class="stop" data-index={i} data-locked={stop.locked ? 'true' : undefined} data-current={!stop.locked && stop.role.current ? 'true' : undefined}>
+              <button
+                type="button"
+                class="node mono"
+                aria-controls={`detail-${i}`}
+                aria-label={stop.locked
+                  ? `Level ${stop.level}: locked, coming soon`
+                  : `Level ${stop.level}: ${stop.role.title} at ${stop.role.company}, ${formatDateRange(stop.role.start, stop.role.end)}`}
+              >
+                <span class="node-num">{stop.level}</span>
+                <svg class="node-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                <svg class="node-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+              </button>
+              <p class="stop-date mono">
+                {stop.locked ? 'Locked' : stop.role.current ? `${stop.role.start} – now` : stop.role.start}
+              </p>
+              <p class="stop-name">{stop.locked ? stop.title : stop.role.title}</p>
+            </li>
+          ))}
+        </ol>
+        <img class="player" src={withBase('/photo-small.png')} alt="" width="48" height="48" decoding="async" aria-hidden="true" />
+  </div>
 
-    {companyGroups.map((group) => (
-      <div class="company-group" data-company={group.company}>
-        {group.roles.map((role, roleIndex) => {
-          const isFirstInCompany = roleIndex === 0;
-          const isContinued = roleIndex > 0;
-          const dateRange = formatDateRange(role.start, role.end);
-          const duration = formatDuration(role.start, role.end, role.current);
-
-          return (
-            <div
-              class:list={['fade-in', 'timeline-row', role.current && 'timeline-row--current', isContinued && 'timeline-row--continued']}
-              data-employment-type={role.employmentType}
-              data-nav-label={role.title}
-              data-nav-date={role.end}
-              data-nav-end={role.end}
-              data-nav-start={role.start}
-            >
-              <div class="timeline-side">
-                <div class="tl-dates mono">
-                  <span class="tl-range">
-                    <span class="tl-range-start">{role.start}</span>
-                    <span class="tl-range-end">{role.end}</span>
-                  </span>
-                  <span class="tl-duration">{duration}</span>
-                  {role.current && <span class="tl-badge mono">Current</span>}
-                </div>
-                <div class="tl-marker">
-                  <span class:list={['tl-dot', role.current && 'tl-dot--current']}></span>
-                </div>
-              </div>
-
-              <article class:list={['timeline-card', 'role-card', role.current && 'role-card--current', isContinued && 'role-card--continued']}>
-                <div class="role-header">
-                  <p class="tl-dates-mobile mono">
-                    {dateRange}
-                    <span class="tl-duration-mobile"> · {duration}</span>
-                    {role.current && <span class="tl-badge mono tl-badge--inline">Current</span>}
-                  </p>
-
-                  <div class="role-card-top">
-                    <h2 class="role-title">{role.title}</h2>
-                    <span class="role-tag mono">{role.employmentType}</span>
-                  </div>
-
-                  {isFirstInCompany ? (
-                    <p class="role-company">
-                      {group.companyUrl ? (
-                        <a href={group.companyUrl} target="_blank" rel="noopener" class="company-link">{group.company}</a>
-                      ) : (
-                        group.company
-                      )}
-                    </p>
-                  ) : (
-                    <p class="role-company role-company--continued">
-                      Earlier role at{' '}
-                      {group.companyUrl ? (
-                        <a href={group.companyUrl} target="_blank" rel="noopener" class="company-link">{group.company}</a>
-                      ) : (
-                        group.company
-                      )}
-                    </p>
-                  )}
-                </div>
-
-                <ul class="bullets">
-                  {role.bullets.map((b) => <li>{b}</li>)}
-                </ul>
-              </article>
+  <section class="panel" id="panel" aria-live="polite" aria-label="What I was doing at this level">
+    {stops.map((stop, i) => (
+      <article class="detail" id={`detail-${i}`} data-index={i} hidden>
+        {stop.locked ? (
+          <div class="detail-locked">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <div>
+              <p class="detail-level mono">Level {stop.level} · Locked</p>
+              <h2 class="detail-title">{stop.title}</h2>
+              <p class="detail-company">{stop.company}</p>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        ) : (
+          <>
+            <div class="detail-head">
+              <p class="detail-level mono">
+                Level {stop.level}
+                {stop.role.current ? <span class="badge badge--now">Now</span> : <span class="badge">Cleared</span>}
+              </p>
+              <h2 class="detail-title">{stop.role.title}</h2>
+              <p class="detail-company">
+                {stop.role.companyUrl ? (
+                  <a href={stop.role.companyUrl} target="_blank" rel="noopener" class="company-link">{stop.role.company}</a>
+                ) : (
+                  stop.role.company
+                )}
+              </p>
+              <p class="detail-dates mono">
+                {formatDateRange(stop.role.start, stop.role.end)} · {durationOf(stop.role)}
+              </p>
+              <p class="tag mono">{stop.role.employmentType}</p>
+            </div>
+            <ul class="bullets">
+              {stop.role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
+            </ul>
+          </>
+        )}
+      </article>
     ))}
-  </div>
-
-  <MobileTimelineNav ariaLabel="Jump between roles" />
-
-  <p class="empty-state mono" hidden>No roles match this filter.</p>
+  </section>
 
 </div>
 </Layout>
 
 <script>
-  const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
-  const rows = document.querySelectorAll<HTMLElement>('.timeline-row');
-  const groups = document.querySelectorAll<HTMLElement>('.company-group');
-  const emptyState = document.querySelector<HTMLElement>('.empty-state');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const snake = document.getElementById('snake') as HTMLElement;
+  const list = document.getElementById('stops') as HTMLElement;
+  const stopEls = Array.from(list.querySelectorAll<HTMLElement>('.stop'));
+  const nodes = stopEls.map((s) => s.querySelector<HTMLButtonElement>('.node')!);
+  const details = Array.from(document.querySelectorAll<HTMLElement>('.detail'));
+  const panel = document.getElementById('panel') as HTMLElement;
+  const locked = stopEls.map((s) => s.dataset.locked === 'true');
+  const player = snake.querySelector('.player') as HTMLElement;
+  const status = document.getElementById('map-status') as HTMLElement;
+  const nowBtn = document.getElementById('back-to-now') as HTMLButtonElement;
+  const prevBtn = document.getElementById('prev') as HTMLButtonElement;
+  const nextBtn = document.getElementById('next') as HTMLButtonElement;
+  const titles = details.map((d) => d.querySelector('.detail-title')!.textContent ?? '');
+  const last = stopEls.length - 1;
+  const NODE_R = 30;   // node radius (px) — matches the CSS
+  let TURN = 40;       // how far a U-turn bulges out (px), read from the CSS
 
-  filterBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const filter = btn.dataset.filter ?? 'all';
+  const nowIdx = Math.max(0, stopEls.findIndex((s) => s.dataset.current === 'true'));
+  let at = nowIdx;
+  let busy = false;
+  let cols = 5;
+  let pos = { x: 0, y: 0 };
 
-      filterBtns.forEach((b) => b.classList.toggle('is-active', b === btn));
+  const say = (msg: string) => { status.textContent = msg; };
 
-      let visibleCount = 0;
-      rows.forEach((row) => {
-        const show = filter === 'all' || row.dataset.employmentType === filter;
-        row.classList.toggle('is-hidden', !show);
-        if (show) visibleCount += 1;
-      });
-
-      groups.forEach((group) => {
-        const hasVisible = group.querySelectorAll('.timeline-row:not(.is-hidden)').length > 0;
-        group.classList.toggle('is-hidden', !hasVisible);
-      });
-
-      if (emptyState) emptyState.hidden = visibleCount > 0;
-      document.dispatchEvent(new CustomEvent('timeline-rows-changed'));
+  /** Lay the levels out as a snake: even rows run left to right, odd rows right to left. */
+  function layout() {
+    cols = snake.clientWidth >= 700 ? 5 : 3;
+    list.style.setProperty('--cols', String(cols));
+    stopEls.forEach((el, i) => {
+      const row = Math.floor(i / cols);
+      const inRow = i % cols;
+      const rtl = row % 2 === 1;
+      el.style.gridRow = String(row + 1);
+      el.style.gridColumn = String((rtl ? cols - 1 - inRow : inRow) + 1);
+      el.dataset.dir = rtl ? 'rtl' : 'ltr';
+      const endOfRow = inRow === cols - 1 && i < last;
+      el.dataset.turn = endOfRow ? (rtl ? 'left' : 'right') : '';
+      const hasNext = i < last && !endOfRow;
+      el.dataset.link = hasNext || endOfRow ? (locked[i] || locked[i + 1] ? 'dotted' : 'solid') : '';
+      el.dataset.hlink = hasNext ? 'true' : '';
     });
+    const turnEl = stopEls.find((e) => e.dataset.turn);
+    if (turnEl) TURN = parseFloat(getComputedStyle(turnEl, '::before').width) || 40;
+    const c = center(at);
+    placeToken(c.x, c.y);
+  }
+
+  function center(i: number) {
+    const el = stopEls[i];
+    return { x: el.offsetLeft + el.offsetWidth / 2, y: el.offsetTop + NODE_R };
+  }
+
+  function placeToken(x: number, y: number) {
+    pos = { x, y };
+    player.style.transform = `translate3d(${x - 24}px, ${y - 24}px, 0)`;
+  }
+
+  function render() {
+    stopEls.forEach((el, i) => {
+      el.classList.toggle('is-locked', locked[i]);
+      el.classList.toggle('is-here', i === at);
+      el.classList.toggle('is-done', !locked[i] && i !== at);
+      nodes[i].toggleAttribute('aria-current', i === at);
+    });
+    const unlocked = locked.map((l, i) => (l ? -1 : i)).filter((i) => i >= 0);
+    const p = unlocked.indexOf(at);
+    prevBtn.disabled = busy || p <= 0;
+    nextBtn.disabled = busy || p >= unlocked.length - 1;
+    nowBtn.disabled = busy || at === nowIdx;
+  }
+
+  function showDetail(i: number) {
+    details.forEach((d, k) => { d.hidden = k !== i; });
+    const d = details[i];
+    d.classList.remove('enter');
+    void d.offsetWidth;
+    d.classList.add('enter');
+  }
+
+  /** Points the token walks through: node centres, with the U-turn corners between rows. */
+  function route(from: number, to: number) {
+    const dir = to > from ? 1 : -1;
+    const pts = [center(from)];
+    for (let i = from; i !== to; i += dir) {
+      const lo = Math.min(i, i + dir);
+      const side = stopEls[lo].dataset.turn;
+      if (side) {
+        const a = center(lo);
+        const b = center(lo + 1);
+        const x = a.x + (side === 'right' ? TURN : -TURN);
+        const corner = [{ x, y: a.y }, { x, y: b.y }];
+        pts.push(...(dir === 1 ? corner : corner.reverse()));
+      }
+      pts.push(center(i + dir));
+    }
+    return pts;
+  }
+
+  /** One continuous eased walk along the route. */
+  function walk(from: number, to: number): Promise<void> {
+    const pts = route(from, to);
+    const lens: number[] = [];
+    let total = 0;
+    for (let k = 1; k < pts.length; k++) {
+      const l = Math.hypot(pts[k].x - pts[k - 1].x, pts[k].y - pts[k - 1].y);
+      lens.push(l);
+      total += l;
+    }
+    if (reduced || total === 0) {
+      const end = pts[pts.length - 1];
+      placeToken(end.x, end.y);
+      return Promise.resolve();
+    }
+    const duration = Math.min(2600, Math.max(600, (total / 700) * 1000));
+    return new Promise((resolve) => {
+      const t0 = performance.now();
+      const frame = (now: number) => {
+        const t = Math.min(1, (now - t0) / duration);
+        const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        let d = e * total;
+        let k = 0;
+        while (k < lens.length - 1 && d > lens[k]) { d -= lens[k]; k++; }
+        const f = lens[k] ? Math.min(1, d / lens[k]) : 1;
+        placeToken(pts[k].x + (pts[k + 1].x - pts[k].x) * f, pts[k].y + (pts[k + 1].y - pts[k].y) * f);
+        if (t < 1) requestAnimationFrame(frame);
+        else resolve();
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+
+  async function select(i: number) {
+    if (busy) return;
+    if (locked[i]) {
+      const el = stopEls[i];
+      el.classList.remove('shake');
+      void el.offsetWidth;
+      el.classList.add('shake');
+      say('Locked. This level is coming soon.');
+      return;
+    }
+    if (i === at) { showDetail(i); revealPanel(); return; }
+    busy = true;
+    render();
+    snake.classList.add('is-walking');
+    details.forEach((d) => { d.hidden = true; });
+    await walk(at, i);
+    snake.classList.remove('is-walking');
+    at = i;
+    busy = false;
+    render();
+    showDetail(i);
+    say(i === nowIdx ? `Right now: ${titles[i]}` : `Looking back at: ${titles[i]}`);
+    nodes[i].focus({ preventScroll: true });
+    revealPanel();
+  }
+
+  /** On small screens the panel can sit below the fold — bring it into view. */
+  function revealPanel() {
+    requestAnimationFrame(() => panel.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' }));
+  }
+
+  const unlockedIdx = () => locked.map((l, i) => (l ? -1 : i)).filter((i) => i >= 0);
+  const step = (dir: 1 | -1) => {
+    const u = unlockedIdx();
+    const next = u[u.indexOf(at) + dir];
+    if (next !== undefined) select(next);
+  };
+
+  nodes.forEach((n, i) => n.addEventListener('click', () => select(i)));
+  stopEls.forEach((s, i) => s.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('.node')) select(i);
+  }));
+  prevBtn.addEventListener('click', () => step(-1)); // earlier
+  nextBtn.addEventListener('click', () => step(1));  // later
+  nowBtn.addEventListener('click', () => select(nowIdx));
+  list.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); step(1); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); step(-1); }
   });
+
+  new ResizeObserver(() => { if (!busy) layout(); }).observe(snake);
+
+  render();
+  showDetail(at);
+  layout();
+  say(`Right now: ${titles[at]}`);
+  document.fonts?.ready.then(() => { if (!busy) layout(); });
 </script>
 
 <style>
-  .header { margin-bottom: 1.75rem; }
-  h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.025em; color: #111111; margin-bottom: 0.35rem; }
-  .sub { font-size: 0.88rem; color: #999999; }
+  .stage {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 6rem 1.5rem 2.5rem;
+  }
 
-  .filters {
+  .header { margin-bottom: 1.25rem; }
+  h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.025em; color: var(--text); margin-bottom: 0.35rem; }
+  .sub { font-size: 0.9rem; color: var(--text-3); max-width: 40rem; line-height: 1.7; }
+
+  .bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-bottom: 2rem;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
   }
-
-  .filter-btn {
-    font-size: 0.68rem;
+  .ctl {
+    font-size: 0.72rem;
     letter-spacing: 0.03em;
-    color: #555555;
-    background: #ffffff;
-    border: 1px solid #e4e4e4;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
     border-radius: 999px;
-    padding: 0.35rem 0.75rem;
+    padding: 0.4rem 0.9rem;
+    min-height: 2.25rem;
+    min-width: 2.25rem;
     cursor: pointer;
-    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    transition: border-color 0.15s, background 0.15s;
   }
-  .filter-btn:hover {
-    color: #111111;
-    border-color: #c8c8c8;
-    background: #f7f7f7;
-  }
-  .filter-btn.is-active {
-    color: #ffffff;
-    background: #111111;
-    border-color: #111111;
-  }
-
-  .empty-state {
-    font-size: 0.78rem;
-    color: #999999;
-    text-align: center;
-    padding: 2rem 0 0.5rem;
-  }
-
+  .ctl:hover:not(:disabled) { border-color: var(--text-3); background: var(--surface); }
+  .ctl:disabled { opacity: 0.4; cursor: default; }
+  .status { flex: 1 1 14rem; min-width: 0; font-size: 0.72rem; color: var(--text-3); margin-left: 0.25rem; }
   .mono { font-family: "IBM Plex Mono", monospace; }
 
-  .company-group {
-    display: contents;
-  }
-  .company-group.is-hidden {
-    display: none;
-  }
-
-  .timeline-row--continued {
-    margin-top: -0.35rem;
+  /* ── Snake board ── */
+  .snake {
+    position: relative;
+    margin-top: 0.75rem;
   }
 
-  .tl-badge--inline {
-    display: inline-block;
-    margin: 0 0 0 0.4rem;
-    vertical-align: middle;
+  .stops {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr));
+    row-gap: 1.75rem;
+    --rowgap: 1.75rem;
+    /* U-turns bulge past the last column so they never cross a label */
+    --turn-out: 1.75rem;
+    padding-inline: 2rem;
   }
 
-  .role-header {
-    margin-bottom: 0.85rem;
+  .stop {
+    position: relative;
+    text-align: center;
+    padding: 0 0.4rem 0.25rem;
+    cursor: pointer;
   }
 
-  .role-card-top {
+  /* straight link to the next level in the row */
+  .stop[data-hlink='true']::after {
+    content: '';
+    position: absolute;
+    top: 30px;
+    width: 100%;
+    border-top: 4px solid var(--text);
+    border-radius: 2px;
+    z-index: 0;
+  }
+  .stop[data-hlink='true'][data-dir='ltr']::after { left: 50%; }
+  .stop[data-hlink='true'][data-dir='rtl']::after { right: 50%; }
+
+  /* U-turn at the end of a row, down to the first level of the next row */
+  .stop[data-turn='right']::before,
+  .stop[data-turn='left']::before {
+    content: '';
+    position: absolute;
+    top: 30px;
+    width: calc(50% + var(--turn-out));
+    height: calc(100% + var(--rowgap));
+    border: 4px solid var(--text);
+    z-index: 0;
+  }
+  .stop[data-turn='right']::before {
+    left: 50%;
+    border-left: 0;
+    border-radius: 0 30px 30px 0;
+  }
+  .stop[data-turn='left']::before {
+    right: 50%;
+    border-right: 0;
+    border-radius: 30px 0 0 30px;
+  }
+  /* dotted where the road isn't open yet */
+  .stop[data-link='dotted']::after,
+  .stop[data-link='dotted']::before {
+    border-color: var(--border);
+    border-style: dotted;
+  }
+
+  .node {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 0.7rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--bg);
+    border: 2px solid var(--text);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .node svg { width: 20px; height: 20px; grid-area: 1 / 1; display: none; }
+  .node-num { grid-area: 1 / 1; }
+
+  .stop-date { font-size: 0.72rem; color: var(--text-3); letter-spacing: 0.02em; margin-bottom: 0.15rem; }
+  .stop-name { font-size: 0.9rem; line-height: 1.4; color: var(--text-2); max-width: 11rem; margin-inline: auto; }
+
+  .stop.is-done .node { background: var(--text); color: var(--bg); }
+  .stop.is-done .node-num { display: none; }
+  .stop.is-done .node-check { display: block; }
+  .stop.is-here .node { border-width: 3px; animation: here-ring 2.2s ease-out infinite; }
+  .stop.is-here .node-num { opacity: 0; }
+  .stop.is-here .stop-name, .stop.is-here .stop-date { color: var(--text); font-weight: 600; }
+  .stop.is-locked { cursor: not-allowed; }
+  .stop.is-locked .node { border-style: dashed; border-color: var(--text-3); color: var(--text-3); cursor: not-allowed; }
+  .stop.is-locked .node-num { display: none; }
+  .stop.is-locked .node-lock { display: block; }
+  .stop.is-locked .stop-name, .stop.is-locked .stop-date { opacity: 0.55; }
+  @media (hover: hover) {
+    .stop:not(.is-locked):not(.is-here):hover .node { border-color: var(--text-3); }
+  }
+
+  @keyframes here-ring {
+    0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--text) 35%, transparent); }
+    70%  { box-shadow: 0 0 0 14px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .stop.shake .node { animation: shake 0.35s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  .player {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--text);
+    background: var(--bg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+    will-change: transform;
+  }
+  .snake.is-walking .node,
+  .snake.is-walking .stop { animation: none; transition: none; }
+
+  /* ── Bottom panel: what I was doing there ── */
+  .panel {
+    margin-top: 1.25rem;
+  }
+  .detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 1.5rem 2.5rem;
+    padding: 1.5rem 1.6rem;
+    background: var(--bg);
+    border: 1px solid var(--text-3);
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  }
+  .detail[hidden] { display: none; }
+  .detail.enter { animation: panel-in 0.28s ease; }
+  @keyframes panel-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .detail-level {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.85rem;
-    margin-bottom: 0.2rem;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    color: var(--text-3);
+    margin-bottom: 0.6rem;
   }
-
-  .role-title {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #111111;
-    letter-spacing: -0.01em;
-    line-height: 1.25;
-    margin: 0;
+  .badge {
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1rem 0.35rem;
+    line-height: 1.2;
   }
-
-  .role-tag {
-    flex-shrink: 0;
-    max-width: 45%;
+  .badge--now { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .detail-title { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; color: var(--text); }
+  .detail-company { font-size: 0.95rem; color: var(--text-2); margin-top: 0.2rem; }
+  .company-link { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--border); }
+  .company-link:hover { color: var(--text); text-decoration-color: var(--text-3); }
+  .detail-dates { font-size: 0.72rem; color: var(--text-3); margin-top: 0.7rem; }
+  .tag {
+    display: inline-block;
+    margin-top: 0.7rem;
     font-size: 0.68rem;
     letter-spacing: 0.03em;
-    color: #555555;
-    border: 1px solid #e4e4e4;
+    color: var(--text-2);
+    border: 1px solid var(--border);
     border-radius: 3px;
-    padding: 0.18rem 0.55rem;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    padding: 0.15rem 0.5rem;
+  }
+  .bullets { gap: 0.65rem; align-self: start; }
+  .bullets :global(li) { font-size: 0.9rem; line-height: 1.7; }
+  .bullets :global(.num) {
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface);
+    border-radius: 3px;
+    padding: 0 0.2em;
+    outline: 1px solid var(--border);
   }
 
-  .role-company {
-    font-size: 0.79rem;
-    color: #666666;
-    line-height: 1.55;
-    margin: 0;
+  .detail-locked { grid-column: 1 / -1; display: flex; align-items: center; gap: 1rem; color: var(--text-3); }
+  .detail-locked svg { width: 28px; height: 28px; flex-shrink: 0; }
+  .detail-locked .detail-title { color: var(--text-2); }
+  .detail-locked .detail-level { margin-bottom: 0.3rem; }
+
+  @media (max-width: 760px) {
+    .detail { grid-template-columns: 1fr; padding: 1.2rem 1.2rem; gap: 1rem; }
   }
 
-  .role-company--continued {
-    font-size: 0.74rem;
-    color: #888888;
+  @media (max-width: 640px) {
+    .stage { padding: 5.5rem 1.1rem 5rem; }
+    .panel { margin-top: 1.25rem; }
+    .stops { row-gap: 1.4rem; --rowgap: 1.4rem; --turn-out: 0.9rem; padding-inline: 1rem; }
+    .stop { padding-inline: 0.15rem; }
+    .stop-name { font-size: 0.8rem; }
+    .stop-date { font-size: 0.66rem; }
   }
 
-  .company-link {
-    color: inherit;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    text-decoration-color: #c8c8c8;
-    transition: color 0.15s, text-decoration-color 0.15s;
+  @media (prefers-reduced-motion: reduce) {
+    .detail.enter, .stop.is-here .node, .stop.shake .node { animation: none; }
+    .node, .ctl { transition: none; }
   }
-  .company-link:hover {
-    color: #111111;
-    text-decoration-color: #888888;
-  }
-
-  .role-card--current {
-    border-color: #c0c0c0;
-    box-shadow: inset 3px 0 0 #111111;
-  }
-
-  .bullets {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    margin: 0;
-    padding: 0;
-  }
-  .bullets li {
-    font-size: 0.8rem;
-    color: #555555;
-    line-height: 1.65;
-    padding-left: 1rem;
-    position: relative;
-  }
-  .bullets li::before {
-    content: '–';
-    position: absolute;
-    left: 0;
-    color: #cccccc;
-  }
-
-  @media (--mobile) {
-    .timeline-row--continued { margin-top: 0; }
-  }
-
-  :global([data-theme="dark"]) h1 { color: #e8e8e8; }
-  :global([data-theme="dark"]) .sub { color: #555555; }
-  :global([data-theme="dark"]) .filter-btn {
-    color: #909090;
-    background: #1a1a1a;
-    border-color: #2a2a2a;
-  }
-  :global([data-theme="dark"]) .filter-btn:hover {
-    color: #e0e0e0;
-    border-color: #484848;
-    background: #222222;
-  }
-  :global([data-theme="dark"]) .filter-btn.is-active {
-    color: #111111;
-    background: #e8e8e8;
-    border-color: #e8e8e8;
-  }
-  :global([data-theme="dark"]) .empty-state { color: #555555; }
-  :global([data-theme="dark"]) .role-title { color: #e0e0e0; }
-  :global([data-theme="dark"]) .role-tag {
-    color: #707070;
-    border-color: #2a2a2a;
-  }
-  :global([data-theme="dark"]) .role-company { color: #808080; }
-  :global([data-theme="dark"]) .role-company--continued { color: #555555; }
-  :global([data-theme="dark"]) .company-link { text-decoration-color: #3a3a3a; }
-  :global([data-theme="dark"]) .company-link:hover {
-    color: #e0e0e0;
-    text-decoration-color: #707070;
-  }
-  :global([data-theme="dark"]) .role-card--current {
-    border-color: #484848;
-    box-shadow: inset 3px 0 0 #e8e8e8;
-  }
-  :global([data-theme="dark"]) .bullets li { color: #909090; }
-  :global([data-theme="dark"]) .bullets li::before { color: #3a3a3a; }
 </style>

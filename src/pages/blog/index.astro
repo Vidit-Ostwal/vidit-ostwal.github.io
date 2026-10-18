@@ -1,6 +1,5 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import MobileTimelineNav from '../../components/MobileTimelineNav.astro';
 import { substackPosts } from '../../data/projects';
 
 const sortedPosts = [...substackPosts].sort(
@@ -17,69 +16,48 @@ function fmtDateShort(d: string) {
   return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
 }
 ---
-
 <Layout title="Blog — Vidit Ostwal">
-<div class="page timeline-page timeline-page--compact">
+<div class="page blog-page">
 
-  <div class="fade-in header">
+  <div class="page-header">
     <h1>Writing</h1>
-    <p class="sub">I share what I'm learning.</p>
+    <p class="sub">I share what I'm learning, with visuals wherever I can.</p>
   </div>
 
-  <div class="fade-in filters" role="group" aria-label="Filter by category">
-    <button type="button" class="filter-btn mono is-active" data-filter="all">All</button>
+  <div class="filters" role="group" aria-label="Filter by category">
+    <button type="button" class="filter-btn is-active" data-filter="all">All</button>
     {categories.map((category) => (
-      <button type="button" class="filter-btn mono" data-filter={category}>{category}</button>
+      <button type="button" class="filter-btn" data-filter={category}>{category}</button>
     ))}
   </div>
 
-  <div class="timeline-wrap">
-    <div class="timeline-spine" aria-hidden="true"></div>
-
+  <div class="grid">
     {sortedPosts.map((post) => (
-      <div
-        class="fade-in timeline-row"
+      <a
+        href={post.url}
+        {...(post.url.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}
+        class="post"
         data-category={post.category}
-        data-nav-label={post.title}
-        data-nav-date={fmtDateShort(post.date)}
-        data-nav-end={post.date}
-        data-nav-start={post.date}
       >
-        <div class="timeline-side">
-          <div class="tl-dates mono">
-            <span class="tl-range">{fmtDateShort(post.date)}</span>
-          </div>
-          <div class="tl-marker">
-            <span class="tl-dot"></span>
-          </div>
+        <div class="post-top">
+          <span class="chip">{post.category}</span>
+          <span class="post-date">{fmtDate(post.date)}</span>
         </div>
-
-        <a
-          href={post.url}
-          {...(post.url.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}
-          class="timeline-card post-card"
-        >
-          <p class="tl-dates-mobile mono">{fmtDate(post.date)}</p>
-          <div class="post-card-top">
-            <h2 class="post-title">{post.title}</h2>
-            <span class="post-tag mono">{post.category}</span>
-          </div>
-          {post.summary && <p class="post-summary">{post.summary}</p>}
-        </a>
-      </div>
+        <h2 class="post-title">{post.title}</h2>
+        {post.summary && <p class="post-summary">{post.summary}</p>}
+        <span class="post-read">Read the post</span>
+      </a>
     ))}
   </div>
 
-  <MobileTimelineNav ariaLabel="Jump between posts" />
-
-  <p class="empty-state mono" hidden>No posts match this filter.</p>
+  <p class="empty-state" hidden>No posts match this filter.</p>
 
 </div>
 </Layout>
 
 <script>
   const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
-  const rows = document.querySelectorAll<HTMLElement>('.timeline-row');
+  const rows = document.querySelectorAll<HTMLElement>('.post');
   const emptyState = document.querySelector<HTMLElement>('.empty-state');
 
   filterBtns.forEach((btn) => {
@@ -91,127 +69,82 @@ function fmtDateShort(d: string) {
       let visibleCount = 0;
       rows.forEach((row) => {
         const show = filter === 'all' || row.dataset.category === filter;
-        row.classList.toggle('is-hidden', !show);
+        row.hidden = !show;
         if (show) visibleCount += 1;
       });
 
       if (emptyState) emptyState.hidden = visibleCount > 0;
-      document.dispatchEvent(new CustomEvent('timeline-rows-changed'));
     });
   });
 </script>
 
 <style>
-  .header { margin-bottom: 1.75rem; }
-  h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.025em; color: #111111; margin-bottom: 0.35rem; }
-  .sub { font-size: 0.88rem; color: #999999; }
+  .blog-page {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 6rem 1.5rem 2.5rem;
+  }
 
-  .filters {
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .post {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    margin-bottom: 2rem;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 1.4rem;
+    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
   }
-
-  .filter-btn {
-    font-size: 0.68rem;
-    letter-spacing: 0.03em;
-    color: #555555;
-    background: #ffffff;
-    border: 1px solid #e4e4e4;
-    border-radius: 999px;
-    padding: 0.35rem 0.75rem;
-    cursor: pointer;
-    transition: color 0.15s, background 0.15s, border-color 0.15s;
-  }
-  .filter-btn:hover {
-    color: #111111;
-    border-color: #c8c8c8;
-    background: #f7f7f7;
-  }
-  .filter-btn.is-active {
-    color: #ffffff;
-    background: #111111;
-    border-color: #111111;
-  }
-
-  .empty-state {
-    font-size: 0.78rem;
-    color: #999999;
-    text-align: center;
-    padding: 2rem 0 0.5rem;
-  }
-
-  .mono { font-family: "IBM Plex Mono", monospace; }
-
-  .post-card {
-    display: block;
-    text-decoration: none;
-  }
-
-  .post-card-top {
+  .post[hidden] { display: none; }
+  .post-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.85rem;
-    margin-bottom: 0.35rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
   }
-
-  .post-tag {
-    flex-shrink: 0;
-    max-width: 45%;
-    font-size: 0.68rem;
-    letter-spacing: 0.03em;
-    color: #555555;
-    border: 1px solid #e4e4e4;
-    border-radius: 3px;
-    padding: 0.18rem 0.55rem;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
+  .post-date { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: var(--text-3); }
   .post-title {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.9rem;
+    font-family: inherit;
+    font-size: 1.05rem;
     font-weight: 600;
-    color: #111111;
-    letter-spacing: -0.01em;
-    line-height: 1.35;
-    margin: 0;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    color: var(--text);
+  }
+  .post-summary { font-size: 0.9rem; color: var(--text-2); line-height: 1.7; }
+  .post-read {
+    margin-top: auto;
+    padding-top: 0.25rem;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--text);
+    text-decoration: underline;
+    text-underline-offset: 4px;
   }
 
-  .post-summary {
-    font-size: 0.79rem;
-    color: #666666;
-    line-height: 1.55;
-    margin: 0;
+  @media (hover: hover) {
+    .post:hover { border-color: var(--text-3); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.05); }
   }
 
-  :global([data-theme="dark"]) h1 { color: #e8e8e8; }
-  :global([data-theme="dark"]) .sub { color: #555555; }
-  :global([data-theme="dark"]) .filter-btn {
-    color: #909090;
-    background: #1a1a1a;
-    border-color: #2a2a2a;
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; }
   }
-  :global([data-theme="dark"]) .filter-btn:hover {
-    color: #e0e0e0;
-    border-color: #484848;
-    background: #222222;
+
+  @media (--mobile) {
+    .blog-page { padding: 5.5rem 1.1rem 2.5rem; }
+    .post { padding: 1.15rem; border-radius: 10px; }
+    .filters { flex-wrap: nowrap; overflow-x: auto; margin-inline: -1.1rem; padding: 0 1.1rem 0.4rem; scrollbar-width: none; }
+    .filter-btn { flex: 0 0 auto; white-space: nowrap; }
   }
-  :global([data-theme="dark"]) .filter-btn.is-active {
-    color: #111111;
-    background: #e8e8e8;
-    border-color: #e8e8e8;
+
+  @media (prefers-reduced-motion: reduce) {
+    .post { transition: none; }
   }
-  :global([data-theme="dark"]) .empty-state { color: #555555; }
-  :global([data-theme="dark"]) .post-tag {
-    color: #707070;
-    border-color: #2a2a2a;
-  }
-  :global([data-theme="dark"]) .post-title { color: #e0e0e0; }
-  :global([data-theme="dark"]) .post-summary { color: #808080; }
 </style>

@@ -1,6 +1,5 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import MobileTimelineNav from '../components/MobileTimelineNav.astro';
 import { showcaseProjects as projects } from '../data/showcase-projects';
 
 function parseMonthYear(value?: string) {
@@ -10,196 +9,233 @@ function parseMonthYear(value?: string) {
 const sortedProjects = [...projects].sort(
   (a, b) => parseMonthYear(b.made) - parseMonthYear(a.made)
 );
+
+const kinds: Record<string, { label: string }> = {
+  'Automating 3D Survival Playing': { label: 'Game-playing agent' },
+  'Automatic UI Fixing Harness': { label: 'Agent tooling' },
+  'Understanding Prime Env Skill': { label: 'RL environment' },
+  'Price Negotiation RL': { label: 'RL environment' },
+  'Maze Bench': { label: 'RL environment' },
+  'MakeMyDocsBot': { label: 'Agent tooling' },
+  'RLM Demo': { label: 'RL environment' },
+};
+const kindFor = (name: string) => kinds[name] ?? { label: 'Project' };
 ---
-
 <Layout title="Projects — Vidit Ostwal">
-<div class="page timeline-page timeline-page--compact">
+<div class="page projects-page">
 
-  <div class="fade-in header">
+  <div class="page-header">
     <h1>Projects</h1>
-    <p class="sub">Things I've built.</p>
+    <p class="sub">Things I've built: agents that act on their own, and environments to train them in. Tap a project to read the full story.</p>
   </div>
 
-  <div class="timeline-wrap">
-    <div class="timeline-spine" aria-hidden="true"></div>
+  <div class="grid">
+    {sortedProjects.map((p, i) => {
+      const kind = kindFor(p.name);
+      const id = `proj-${i}`;
+      return (
+        <article class:list={['tile', i === 0 && 'is-open']}>
+          <button type="button" class="tile-head" aria-expanded={i === 0 ? 'true' : 'false'} aria-controls={id}>
+            <span class="tile-top">
+              <span class="chip">{kind.label}</span>
+              {p.made && <span class="tile-date">{p.made}</span>}
+            </span>
+            <span class="tile-name">{p.name}</span>
+            <span class="tile-tag">{p.tagline}</span>
+            <span class="tile-toggle">
+              <span class="tile-toggle-label">{i === 0 ? 'Show less' : 'Read the full story'}</span>
+              <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg>
+            </span>
+          </button>
 
-    {sortedProjects.map((p) => (
-      <div
-        class="fade-in timeline-row"
-        data-nav-label={p.name}
-        data-nav-date={p.made ?? ''}
-        data-nav-end={p.made ?? ''}
-        data-nav-start={p.made ?? ''}
-      >
-        <div class="timeline-side">
-          {p.made ? (
-            <div class="tl-dates mono">
-              <span class="tl-range">{p.made}</span>
+          <div class="tile-body" id={id}>
+            <div class="tile-body-inner">
+              <ul class="bullets">
+                {p.bullets.map((b) => <li>{b}</li>)}
+              </ul>
             </div>
-          ) : (
-            <div class="tl-dates" aria-hidden="true"></div>
-          )}
-          <div class="tl-marker">
-            <span class="tl-dot"></span>
           </div>
-        </div>
 
-        <article class="timeline-card project-card">
-          <div class="proj-title">
-            {p.made && <p class="tl-dates-mobile mono">{p.made}</p>}
-            <h2 class="proj-name">
-              <span class="proj-name-text">{p.name}</span>
-              <span class="proj-links">
-                <a href={p.github} target="_blank" rel="noopener" class="icon-link mono" aria-label="GitHub">
-                  <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                  </svg>
-                  <span class="link-label">GitHub</span>
-                </a>
-                {p.liveLink && (
-                  <a href={p.liveLink} target="_blank" rel="noopener" class="icon-link icon-link--live mono" aria-label="Live demo">
-                    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                      <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.5 7.5a.5.5 0 0 1 0-1h5.793L8.146 4.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 7.5H4.5z"/>
-                    </svg>
-                    <span class="link-label">Live</span>
-                  </a>
-                )}
-                {p.xPost && (
-                  <a href={p.xPost} target="_blank" rel="noopener" class="icon-link icon-link--x mono" aria-label="X launch post">
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
-                    <span class="link-label">Launch</span>
-                  </a>
-                )}
-              </span>
-            </h2>
-          </div>
-          <p class="proj-tag">{p.tagline}</p>
-          <ul class="bullets">
-            {p.bullets.map(b => <li>{b}</li>)}
+          <ul class="tile-links">
+            <li>
+              <a href={p.github} target="_blank" rel="noopener" class="tlink">
+                <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                <span>GitHub</span>
+              </a>
+            </li>
+            {p.liveLink && (
+              <li><a href={p.liveLink} target="_blank" rel="noopener" class="tlink tlink--accent"><span>Live demo</span></a></li>
+            )}
+            {p.xPost && (
+              <li><a href={p.xPost} target="_blank" rel="noopener" class="tlink"><span>Launch post</span></a></li>
+            )}
           </ul>
         </article>
-      </div>
-    ))}
+      );
+    })}
   </div>
-
-  <MobileTimelineNav ariaLabel="Jump between projects" />
 
 </div>
 </Layout>
 
-<style>
-  .header { margin-bottom: 3rem; }
-  h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.025em; color: #111111; margin-bottom: 0.35rem; }
-  .sub { font-size: 0.88rem; color: #999999; }
+<script>
+  const tiles = document.querySelectorAll<HTMLElement>('.tile');
 
-  .mono { font-family: "IBM Plex Mono", monospace; }
-
-  .proj-title {
-    display: flex;
-    flex-direction: column;
-    gap: 0.12rem;
-    margin-bottom: 0.75rem;
+  function setOpen(tile: HTMLElement, open: boolean) {
+    tile.classList.toggle('is-open', open);
+    const head = tile.querySelector<HTMLButtonElement>('.tile-head');
+    const label = tile.querySelector<HTMLElement>('.tile-toggle-label');
+    head?.setAttribute('aria-expanded', String(open));
+    if (label) label.textContent = open ? 'Show less' : 'Read the full story';
   }
 
-  .proj-name {
+  tiles.forEach((tile) => {
+    tile.querySelector('.tile-head')?.addEventListener('click', () => {
+      const willOpen = !tile.classList.contains('is-open');
+      // One open at a time keeps the grid tidy
+      tiles.forEach((t) => setOpen(t, false));
+      setOpen(tile, willOpen);
+      if (willOpen) {
+        requestAnimationFrame(() => tile.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+      }
+    });
+  });
+</script>
+
+<style>
+  .projects-page {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 6rem 1.5rem 2.5rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: dense;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .tile {
     display: flex;
-    flex-wrap: nowrap;
+    flex-direction: column;
+    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .tile.is-open {
+    grid-column: 1 / -1;
+    border-color: var(--text-3);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+  }
+  @media (hover: hover) {
+    .tile:not(.is-open):hover { border-color: var(--text-3); }
+  }
+
+  .tile-head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 1.25rem 1.35rem 0.5rem;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: 12px 12px 0 0;
+    cursor: pointer;
+  }
+  .tile-top {
+    display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    font-size: 0.9rem;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  .tile-date { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; color: var(--text-3); }
+  .tile-name {
+    font-size: 1.05rem;
     font-weight: 600;
-    color: #111111;
-    letter-spacing: -0.01em;
-    line-height: 1.25;
-    margin: 0;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+    color: var(--text);
   }
+  .tile-tag { font-size: 0.9rem; color: var(--text-2); line-height: 1.7; }
 
-  .proj-name-text {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .proj-links {
+  .tile-toggle {
     display: inline-flex;
     align-items: center;
-    flex-wrap: nowrap;
-    gap: 0.25rem;
-    flex: 0 0 auto;
-  }
-
-  .icon-link {
-    display: inline-flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    border: 1px solid #d0d0d0;
-    font-size: 0.62rem;
+    gap: 0.4rem;
+    margin-top: 0.15rem;
+    min-height: 2rem;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
     letter-spacing: 0.02em;
-    color: #444444;
-    background: #f5f5f5;
-    text-decoration: none;
-    transition: color 0.15s, background 0.15s, border-color 0.15s;
-    white-space: nowrap;
-    flex-shrink: 0;
+    color: var(--text);
   }
-  .icon-link:hover,
-  .icon-link--live:hover,
-  .icon-link--x:hover {
-    color: #111111;
-    background: #ebebeb;
-    border-color: #b0b0b0;
-  }
-  .icon-link svg {
-    display: block;
-    width: 0.72rem;
-    height: 0.72rem;
-    flex-shrink: 0;
-  }
+  .chev { width: 0.95rem; height: 0.95rem; transition: transform 0.25s ease; }
+  .tile.is-open .chev { transform: rotate(180deg); }
 
-  .proj-tag {
-    font-size: 0.79rem;
-    color: #666666;
-    line-height: 1.55;
-    margin: 0 0 0.85rem;
+  /* Smooth height animation without measuring: 0fr → 1fr */
+  .tile-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease;
   }
+  .tile.is-open .tile-body { grid-template-rows: 1fr; }
+  .tile-body-inner { overflow: hidden; min-height: 0; padding: 0 1.35rem; }
+  .tile.is-open .tile-body-inner { padding-top: 0.6rem; padding-bottom: 0.4rem; }
+  .bullets li { font-size: 0.9rem; line-height: 1.7; }
+  .bullets { gap: 0.6rem; }
 
-  .bullets {
+  .tile-links {
+    margin-top: auto;
     list-style: none;
     display: flex;
-    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0.45rem;
+    padding: 0.5rem 1.35rem 1.25rem;
+  }
+  .tlink {
+    display: inline-flex;
+    align-items: center;
     gap: 0.4rem;
-    margin: 0;
-    padding: 0;
+    min-height: 2.25rem;
+    padding: 0.3rem 0.75rem;
+    white-space: nowrap;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    color: var(--text-2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
   }
-  .bullets li {
-    font-size: 0.8rem;
-    color: #555555;
-    line-height: 1.65;
-    padding-left: 1rem;
-    position: relative;
-  }
-  .bullets li::before {
-    content: '–';
-    position: absolute;
-    left: 0;
-    color: #cccccc;
+  .tlink svg { width: 0.95rem; height: 0.95rem; }
+  .tlink:hover { color: var(--text); border-color: var(--text-3); }
+  .tlink--accent { color: var(--text); border-color: var(--text-3); }
+
+  @media (min-width: 900px) {
+    .tile.is-open .bullets { columns: 2; column-gap: 2.5rem; display: block; }
+    .tile.is-open .bullets li { break-inside: avoid; margin-bottom: 0.6rem; }
   }
 
-  :global([data-theme="dark"]) h1 { color: #e8e8e8; }
-  :global([data-theme="dark"]) .sub { color: #555555; }
-  :global([data-theme="dark"]) .proj-name { color: #e0e0e0; }
-  :global([data-theme="dark"]) .icon-link { color: #808080; background: #222222; border-color: #333333; }
-  :global([data-theme="dark"]) .icon-link:hover,
-  :global([data-theme="dark"]) .icon-link--live:hover,
-  :global([data-theme="dark"]) .icon-link--x:hover { color: #d8d8d8; background: #2a2a2a; border-color: #505050; }
-  :global([data-theme="dark"]) .proj-tag { color: #808080; }
-  :global([data-theme="dark"]) .bullets li { color: #909090; }
-  :global([data-theme="dark"]) .bullets li::before { color: #3a3a3a; }
+  @media (max-width: 640px) {
+    .projects-page { padding: 5.5rem 1.1rem 2.5rem; }
+    .grid { grid-template-columns: 1fr; }
+    .tlink { padding: 0.3rem 0.6rem; font-size: 0.68rem; gap: 0.3rem; white-space: nowrap; }
+    .tile-links { gap: 0.35rem; }
+    .tile-head { padding: 1.1rem 1.1rem 0.4rem; }
+    .tile-body-inner { padding: 0 1.1rem; }
+    .tile-links { padding: 0.5rem 1.1rem 1.1rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tile, .tile-body, .chev { transition: none; }
+  }
 </style>

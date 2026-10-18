@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-label="VO">
+  <title>VO</title>
+  <rect width="32" height="32" rx="8" fill="#111111"/>
+  <!-- Centered VO: bbox ~ x 8…28.75 → shift left ~2.4 so midpoint aligns with x=16 -->
+  <g fill="#ffffff" transform="translate(-2.375, 0)">
+    <!-- V -->
+    <path d="M8 10h2.2l4.3 9 4.3-9H21l-5.5 12h-2L8 10z"/>
+    <!-- O -->
+    <path
+      fill-rule="evenodd"
+      d="M22.75 22c3.05 0 5.55-2.75 5.55-6s-2.5-6-5.55-6-5.55 2.75-5.55 6 2.5 6 5.55 6zm0-1.95c-1.9 0-3.55-1.85-3.55-4.05 0-2.15 1.65-4.05 3.55-4.05s3.55 1.9 3.55 4.05-1.65 4.05-3.55 4.05z"/>
+  </g>
+</svg>
