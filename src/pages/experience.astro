@@ -3,14 +3,14 @@ import Layout from '../layouts/Layout.astro';
 import { withBase } from '../lib/paths';
 import { experience, formatDateRange, formatDuration } from '../data/experience';
 
-/** Latest first: where I am now is at the top, with what's next locked above it. */
+/** Left to right, like progress: oldest first, then where I am now, then what's locked ahead. */
 const upcoming = [
   { title: 'Coming soon', company: 'More to build, more to write.' },
   { title: '???', company: 'Unlocks after the next level.' },
 ];
 const stops = [
-  ...upcoming.map((u, i) => ({ locked: true as const, level: experience.length + upcoming.length - i, ...u })),
-  ...experience.map((role, i) => ({ locked: false as const, level: experience.length - i, role })),
+  ...[...experience].reverse().map((role, i) => ({ locked: false as const, level: i + 1, role })),
+  ...upcoming.map((u, i) => ({ locked: true as const, level: experience.length + i + 1, ...u })),
 ];
 
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -24,7 +24,7 @@ const withNumbers = (t: string) =>
 
   <div class="header">
     <h1>Experience</h1>
-    <p class="sub">What I'm doing now is selected. Pick any cleared level to see what I was up to there. Locked levels are what's next.</p>
+    <p class="sub">The path runs left to right, from my first project to what I'm doing now. Pick any cleared level to see what I was up to there. Locked levels are what's next.</p>
   </div>
 
   <div class="bar">
@@ -39,7 +39,7 @@ const withNumbers = (t: string) =>
       <div class="track-inner" id="track-inner">
         <ol class="stops">
           {stops.map((stop, i) => (
-            <li class="stop" data-index={i} data-locked={stop.locked ? 'true' : undefined}>
+            <li class="stop" data-index={i} data-locked={stop.locked ? 'true' : undefined} data-current={!stop.locked && stop.role.current ? 'true' : undefined}>
               <button
                 type="button"
                 class="node mono"
@@ -123,8 +123,8 @@ const withNumbers = (t: string) =>
   const nextBtn = document.getElementById('next') as HTMLButtonElement;
   const titles = details.map((d) => d.querySelector('.detail-title')!.textContent ?? '');
 
-  // The current role is the first level that isn't locked.
-  const nowIdx = locked.findIndex((l) => !l);
+  // The current role is the level marked current.
+  const nowIdx = Math.max(0, stopEls.findIndex((s) => s.dataset.current === 'true'));
   let at = nowIdx;
   let busy = false;
   let tokenX = 0;
@@ -220,8 +220,8 @@ const withNumbers = (t: string) =>
   stopEls.forEach((s, i) => s.addEventListener('click', (e) => {
     if (!(e.target as HTMLElement).closest('.node')) select(i);
   }));
-  prevBtn.addEventListener('click', () => step(-1)); // left: newer
-  nextBtn.addEventListener('click', () => step(1));  // right: older
+  prevBtn.addEventListener('click', () => step(-1)); // left: earlier
+  nextBtn.addEventListener('click', () => step(1));  // right: later
   nowBtn.addEventListener('click', () => select(nowIdx));
   track.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
@@ -248,10 +248,6 @@ const withNumbers = (t: string) =>
     max-width: 1000px;
     margin: 0 auto;
     padding: 6rem 1.5rem 2.5rem;
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
   }
 
   .header { margin-bottom: 1.25rem; }
@@ -413,8 +409,7 @@ const withNumbers = (t: string) =>
 
   /* ── Bottom panel: what I was doing there ── */
   .panel {
-    margin-top: auto;
-    padding-top: 1.5rem;
+    margin-top: 1.25rem;
   }
   .detail {
     display: grid;
@@ -490,6 +485,7 @@ const withNumbers = (t: string) =>
 
   @media (max-width: 640px) {
     .stage { padding: 5.5rem 1.1rem 5rem; }
+    .panel { margin-top: 0.75rem; }
     .track-wrap { margin-inline: -1.1rem; }
     .stop { flex-basis: 150px; width: 150px; }
     .track-inner { padding-inline: calc(50% - 75px); }
