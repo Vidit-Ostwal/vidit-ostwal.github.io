@@ -20,246 +20,168 @@ const withNumbers = (t: string) =>
 ---
 
 <Layout title="Experience — Vidit Ostwal">
-<div class="page map-page">
+<div class="page stage">
 
   <div class="header">
     <h1>Experience</h1>
-    <p class="sub">Top of the map is what I'm doing right now. Walk down the path to see where I've been. The locked stops are what's next.</p>
+    <p class="sub">What I'm doing now is selected. Pick any cleared level to see what I was up to there. Locked levels are what's next.</p>
   </div>
 
-  <div class="controls">
+  <div class="bar">
+    <button type="button" class="ctl mono" id="prev" aria-label="Previous level">←</button>
+    <button type="button" class="ctl mono" id="next" aria-label="Next level">→</button>
     <button type="button" class="ctl mono" id="back-to-now">Back to now</button>
     <p class="status mono" id="map-status" role="status" aria-live="polite"></p>
   </div>
 
-  <div class="map" id="map">
-    <svg class="map-svg" aria-hidden="true"></svg>
-
-    <ol class="stops">
-      {stops.map((stop, i) => (
-        <li class:list={['stop', i % 2 === 0 ? 'stop--a' : 'stop--b']} data-index={i} data-locked={stop.locked ? 'true' : undefined}>
-          <button
-            type="button"
-            class="node mono"
-            aria-expanded="false"
-            aria-controls={stop.locked ? undefined : `stop-body-${i}`}
-            aria-label={stop.locked
-              ? `Level ${stop.level}: locked, coming soon`
-              : `Level ${stop.level}: ${stop.role.title} at ${stop.role.company}, ${formatDateRange(stop.role.start, stop.role.end)}`}
-          >
-            <span class="node-num">{stop.level}</span>
-            <svg class="node-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-            <svg class="node-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-          </button>
-
-          {stop.locked ? (
-            <article class="card">
-              <p class="meta mono">Level {stop.level} · Not unlocked yet</p>
-              <h2 class="title">{stop.title}</h2>
-              <p class="company">{stop.company}</p>
-              <p class="hint mono">
-                <span class="hint-locked">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-                  Locked
-                </span>
+  <div class="track-wrap">
+    <div class="track" id="track">
+      <div class="track-inner" id="track-inner">
+        <ol class="stops">
+          {stops.map((stop, i) => (
+            <li class="stop" data-index={i} data-locked={stop.locked ? 'true' : undefined}>
+              <button
+                type="button"
+                class="node mono"
+                aria-controls={`detail-${i}`}
+                aria-label={stop.locked
+                  ? `Level ${stop.level}: locked, coming soon`
+                  : `Level ${stop.level}: ${stop.role.title} at ${stop.role.company}, ${formatDateRange(stop.role.start, stop.role.end)}`}
+              >
+                <span class="node-num">{stop.level}</span>
+                <svg class="node-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                <svg class="node-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+              </button>
+              <p class="stop-date mono">
+                {stop.locked ? 'Locked' : stop.role.current ? `${stop.role.start} – now` : stop.role.start}
               </p>
-            </article>
-          ) : (
-            <article class="card">
-              <p class="meta mono">
-                {formatDateRange(stop.role.start, stop.role.end)} · {formatDuration(stop.role.start, stop.role.end, stop.role.current)}
-                {stop.role.current && <span class="badge badge--now">Now</span>}
-                <span class="badge badge--cleared">Cleared</span>
+              <p class="stop-name">{stop.locked ? stop.title : stop.role.title}</p>
+            </li>
+          ))}
+        </ol>
+        <img class="player" src={withBase('/photo-small.png')} alt="" width="44" height="44" decoding="async" aria-hidden="true" />
+      </div>
+    </div>
+  </div>
+
+  <section class="panel" id="panel" aria-live="polite" aria-label="What I was doing at this level">
+    {stops.map((stop, i) => (
+      <article class="detail" id={`detail-${i}`} data-index={i} hidden>
+        {stop.locked ? (
+          <div class="detail-locked">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <div>
+              <p class="detail-level mono">Level {stop.level} · Locked</p>
+              <h2 class="detail-title">{stop.title}</h2>
+              <p class="detail-company">{stop.company}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div class="detail-head">
+              <p class="detail-level mono">
+                Level {stop.level}
+                {stop.role.current ? <span class="badge badge--now">Now</span> : <span class="badge">Cleared</span>}
               </p>
-              <h2 class="title">{stop.role.title}</h2>
-              <p class="company">
+              <h2 class="detail-title">{stop.role.title}</h2>
+              <p class="detail-company">
                 {stop.role.companyUrl ? (
                   <a href={stop.role.companyUrl} target="_blank" rel="noopener" class="company-link">{stop.role.company}</a>
                 ) : (
                   stop.role.company
                 )}
               </p>
-
-              <div class="card-body" id={`stop-body-${i}`}>
-                <div class="card-body-inner">
-                  <p class="tag mono">{stop.role.employmentType}</p>
-                  <ul class="bullets">
-                    {stop.role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
-                  </ul>
-                </div>
-              </div>
-
-              <p class="hint mono">
-                <span class="hint-open">Read the full story</span>
-                <span class="hint-close">Show less</span>
-                <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg>
+              <p class="detail-dates mono">
+                {formatDateRange(stop.role.start, stop.role.end)} · {formatDuration(stop.role.start, stop.role.end, stop.role.current)}
               </p>
-            </article>
-          )}
-        </li>
-      ))}
-    </ol>
-
-    <img class="player" src={withBase('/photo-small.png')} alt="" width="44" height="44" decoding="async" aria-hidden="true" />
-  </div>
+              <p class="tag mono">{stop.role.employmentType}</p>
+            </div>
+            <ul class="bullets">
+              {stop.role.bullets.map((b) => <li set:html={withNumbers(b)} />)}
+            </ul>
+          </>
+        )}
+      </article>
+    ))}
+  </section>
 
 </div>
 </Layout>
 
 <script>
-  const NS = 'http://www.w3.org/2000/svg';
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const map = document.getElementById('map') as HTMLElement;
-  const svg = map.querySelector('.map-svg') as SVGSVGElement;
-  const stopEls = Array.from(map.querySelectorAll<HTMLElement>('.stop'));
+  const track = document.getElementById('track') as HTMLElement;
+  const inner = document.getElementById('track-inner') as HTMLElement;
+  const stopEls = Array.from(inner.querySelectorAll<HTMLElement>('.stop'));
   const nodes = stopEls.map((s) => s.querySelector<HTMLButtonElement>('.node')!);
-  const cards = stopEls.map((s) => s.querySelector<HTMLElement>('.card')!);
+  const details = Array.from(document.querySelectorAll<HTMLElement>('.detail'));
   const locked = stopEls.map((s) => s.dataset.locked === 'true');
-  const titles = stopEls.map((s) => s.querySelector('.title')!.textContent ?? '');
-  const companies = stopEls.map((s) => s.querySelector('.company')!.textContent?.trim() ?? '');
-  const player = map.querySelector('.player') as HTMLElement;
+  const player = inner.querySelector('.player') as HTMLElement;
   const status = document.getElementById('map-status') as HTMLElement;
   const nowBtn = document.getElementById('back-to-now') as HTMLButtonElement;
+  const prevBtn = document.getElementById('prev') as HTMLButtonElement;
+  const nextBtn = document.getElementById('next') as HTMLButtonElement;
+  const titles = details.map((d) => d.querySelector('.detail-title')!.textContent ?? '');
 
-  // The current role is the first stop that isn't locked.
+  // The current role is the first level that isn't locked.
   const nowIdx = locked.findIndex((l) => !l);
-  let at = nowIdx;      // where the player is standing
-  let openIdx = nowIdx; // which stop shows its details
+  let at = nowIdx;
   let busy = false;
-  let walking = false;
-  let base: SVGPathElement[] = [];
+  let tokenX = 0;
 
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, reduced ? 0 : ms));
   const say = (msg: string) => { status.textContent = msg; };
-  const describe = (i: number) => `${titles[i]} · ${companies[i]}`;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, reduced ? 0 : ms));
 
-  function center(el: HTMLElement) {
-    const m = map.getBoundingClientRect();
-    const r = el.getBoundingClientRect();
-    return { x: r.left - m.left + r.width / 2, y: r.top - m.top + r.height / 2 };
+  const nodeX = (i: number) => stopEls[i].offsetLeft + stopEls[i].offsetWidth / 2;
+  const nodeY = () => nodes[0].offsetTop + nodes[0].offsetHeight / 2;
+
+  function placeToken(x: number) {
+    tokenX = x;
+    player.style.transform = `translate3d(${x - 24}px, ${nodeY() - 24}px, 0)`;
   }
-
-  function placePlayer(x: number, y: number) {
-    player.style.transform = `translate(${x - 22}px, ${y - 22}px)`;
-  }
-
-  function buildPaths() {
-    const w = map.clientWidth;
-    const h = map.clientHeight;
-    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    svg.setAttribute('width', String(w));
-    svg.setAttribute('height', String(h));
-    svg.replaceChildren();
-    base = [];
-    const last = stopEls.length - 1;
-    for (let i = 0; i < last; i++) {
-      const a = center(nodes[i]);
-      const b = center(nodes[i + 1]);
-      const my = (a.y + b.y) / 2;
-      const d = `M ${a.x} ${a.y} C ${a.x} ${my}, ${b.x} ${my}, ${b.x} ${b.y}`;
-      // Solid where I've been, dotted where I haven't got to yet
-      const cleared = !locked[i] && !locked[i + 1];
-
-      const track = document.createElementNS(NS, 'path');
-      track.setAttribute('d', d);
-      track.style.cssText = cleared
-        ? 'fill:none;stroke:var(--text);stroke-width:4;stroke-linecap:round'
-        : 'fill:none;stroke:var(--border);stroke-width:4;stroke-linecap:round;stroke-dasharray:2 10';
-      svg.appendChild(track);
-      base.push(track);
-    }
-    const p = center(nodes[at]);
-    placePlayer(p.x, p.y);
-  }
+  const scrollTo = (x: number) => { track.scrollLeft = x - track.clientWidth / 2; };
 
   function render() {
     stopEls.forEach((el, i) => {
-      const open = i === openIdx && !locked[i];
       el.classList.toggle('is-locked', locked[i]);
-      el.classList.toggle('is-done', !locked[i] && (i !== at || walking));
-      el.classList.toggle('is-here', i === at && !walking);
-      el.classList.toggle('is-open', open);
-      nodes[i].setAttribute('aria-expanded', String(open));
+      el.classList.toggle('is-here', i === at);
+      el.classList.toggle('is-done', !locked[i] && i !== at);
+      nodes[i].toggleAttribute('aria-current', i === at);
     });
+    const unlocked = locked.map((l, i) => (l ? -1 : i)).filter((i) => i >= 0);
+    const pos = unlocked.indexOf(at);
+    prevBtn.disabled = busy || pos <= 0;
+    nextBtn.disabled = busy || pos >= unlocked.length - 1;
     nowBtn.disabled = busy || at === nowIdx;
   }
 
-  /**
-   * Walk the whole route in one continuous motion: a single ease over the full
-   * distance (no stop at every node), one rAF loop, no layout reads per frame.
-   */
-  function walkRoute(from: number, to: number): Promise<void> {
-    const dir: 1 | -1 = to > from ? 1 : -1;
-    const segs: { path: SVGPathElement; len: number; dir: 1 | -1 }[] = [];
-    for (let i = from; i !== to; i += dir) {
-      const path = base[dir === 1 ? i : i - 1];
-      segs.push({ path, len: path.getTotalLength(), dir });
-    }
-    const total = segs.reduce((n, s) => n + s.len, 0);
+  function showDetail(i: number) {
+    details.forEach((d, k) => { d.hidden = k !== i; });
+    const d = details[i];
+    d.classList.remove('enter');
+    void d.offsetWidth;
+    d.classList.add('enter');
+  }
 
-    if (reduced || total === 0) {
-      const end = center(nodes[to]);
-      placePlayer(end.x, end.y);
-      return Promise.resolve();
-    }
-
-    const duration = Math.min(2600, Math.max(700, (total / 900) * 1000));
-    const mapTop = map.getBoundingClientRect().top + window.scrollY; // read once
-    const htmlStyle = document.documentElement.style;
-    const prevBehavior = htmlStyle.scrollBehavior;
-    htmlStyle.scrollBehavior = 'auto'; // our own camera, not the smooth-scroll CSS
-    map.classList.add('is-walking');
-
+  /** One smooth motion for token + camera, driven together so they never drift. */
+  function tween(fromX: number, toX: number): Promise<void> {
+    const dist = Math.abs(toX - fromX);
+    if (reduced || dist === 0) { placeToken(toX); scrollTo(toX); return Promise.resolve(); }
+    const duration = Math.min(1600, Math.max(500, dist * 1.1));
+    const fromScroll = track.scrollLeft;
+    const toScroll = toX - track.clientWidth / 2;
     return new Promise((resolve) => {
       const t0 = performance.now();
-      let camY = window.scrollY;
       const frame = (now: number) => {
         const t = Math.min(1, (now - t0) / duration);
-        const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // easeInOutCubic
-        let d = e * total;
-        let seg = segs[0];
-        for (const s of segs) {
-          seg = s;
-          if (d <= s.len) break;
-          d -= s.len;
-        }
-        const along = seg.dir === 1 ? d : seg.len - d;
-        const pt = seg.path.getPointAtLength(Math.min(Math.max(along, 0), seg.len));
-        placePlayer(pt.x, pt.y);
-
-        // smooth camera: ease toward keeping the player mid-screen
-        const targetY = mapTop + pt.y - window.innerHeight / 2;
-        camY += (targetY - camY) * 0.18;
-        window.scrollTo(0, camY);
-
+        const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        placeToken(fromX + (toX - fromX) * e);
+        track.scrollLeft = fromScroll + (toScroll - fromScroll) * e;
         if (t < 1) requestAnimationFrame(frame);
-        else {
-          htmlStyle.scrollBehavior = prevBehavior;
-          map.classList.remove('is-walking');
-          resolve();
-        }
+        else resolve();
       };
       requestAnimationFrame(frame);
     });
-  }
-
-  async function goTo(target: number) {
-    // close the open card first, let the layout settle, then measure fresh
-    openIdx = -1;
-    render();
-    await sleep(340);
-    buildPaths();
-    walking = true;
-    render();
-    await walkRoute(at, target);
-    at = target;
-    walking = false;
-    buildPaths();
-    openIdx = target;
-    render();
-    say(target === nowIdx ? `Right now: ${describe(target)}` : `Looking back at: ${describe(target)}`);
-    await sleep(360); // let the card finish opening before centring it
-    cards[target].scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
   }
 
   async function select(i: number) {
@@ -269,71 +191,79 @@ const withNumbers = (t: string) =>
       el.classList.remove('shake');
       void el.offsetWidth;
       el.classList.add('shake');
-      say('Locked. This stop is coming soon.');
+      say('Locked. This level is coming soon.');
       return;
     }
-    if (i === at) {
-      openIdx = openIdx === i ? -1 : i;
-      render();
-      return;
-    }
+    if (i === at) { showDetail(i); return; }
     busy = true;
     render();
-    await goTo(i);
+    inner.classList.add('is-walking');
+    details.forEach((d) => { d.hidden = true; });
+    await tween(tokenX, nodeX(i));
+    inner.classList.remove('is-walking');
+    at = i;
     busy = false;
     render();
+    showDetail(i);
+    say(i === nowIdx ? `Right now: ${titles[i]}` : `Looking back at: ${titles[i]}`);
+    nodes[i].focus({ preventScroll: true });
   }
 
-  stopEls.forEach((el, i) => {
-    cards[i].addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('a')) return;
-      select(i);
-    });
-    nodes[i].addEventListener('click', () => select(i));
-  });
-
-  nowBtn.addEventListener('click', async () => {
-    if (busy) return;
-    busy = true;
-    render();
-    await goTo(nowIdx);
-    busy = false;
-    render();
-  });
-
-  // The map changes height when a card opens; redraw the path to match.
-  let raf = 0;
-  const redraw = () => {
-    if (busy) return;
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(buildPaths);
+  const unlockedIdx = () => locked.map((l, i) => (l ? -1 : i)).filter((i) => i >= 0);
+  const step = (dir: 1 | -1) => {
+    const u = unlockedIdx();
+    const next = u[u.indexOf(at) + dir];
+    if (next !== undefined) select(next);
   };
-  new ResizeObserver(redraw).observe(map);
-  window.addEventListener('load', redraw);
-  document.fonts?.ready.then(redraw);
 
-  buildPaths();
+  nodes.forEach((n, i) => n.addEventListener('click', () => select(i)));
+  stopEls.forEach((s, i) => s.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('.node')) select(i);
+  }));
+  prevBtn.addEventListener('click', () => step(-1)); // left: newer
+  nextBtn.addEventListener('click', () => step(1));  // right: older
+  nowBtn.addEventListener('click', () => select(nowIdx));
+  track.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+  });
+
+  function layout() {
+    if (busy) return;
+    placeToken(nodeX(at));
+  }
+  new ResizeObserver(layout).observe(inner);
+  window.addEventListener('resize', () => { layout(); scrollTo(nodeX(at)); });
+
   render();
-  say(`Right now: ${describe(at)}`);
+  showDetail(at);
+  layout();
+  scrollTo(nodeX(at));
+  say(`Right now: ${titles[at]}`);
+  document.fonts?.ready.then(() => { layout(); scrollTo(nodeX(at)); });
 </script>
 
 <style>
-  .map-page {
+  .stage {
     max-width: 1000px;
     margin: 0 auto;
-    padding: 6rem 1.5rem 3rem;
+    padding: 6rem 1.5rem 2.5rem;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
   }
 
-  .header { margin-bottom: 1.5rem; }
+  .header { margin-bottom: 1.25rem; }
   h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.025em; color: var(--text); margin-bottom: 0.35rem; }
-  .sub { font-size: 0.9rem; color: var(--text-3); max-width: 38rem; line-height: 1.7; }
+  .sub { font-size: 0.9rem; color: var(--text-3); max-width: 40rem; line-height: 1.7; }
 
-  .controls {
+  .bar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
   }
   .ctl {
     font-size: 0.72rem;
@@ -342,41 +272,86 @@ const withNumbers = (t: string) =>
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 999px;
-    padding: 0.45rem 0.9rem;
+    padding: 0.4rem 0.9rem;
     min-height: 2.25rem;
+    min-width: 2.25rem;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
   }
   .ctl:hover:not(:disabled) { border-color: var(--text-3); background: var(--surface); }
-  .ctl:disabled { opacity: 0.45; cursor: default; }
-  .status {
-    flex: 1 1 14rem;
-    min-width: 0;
-    font-size: 0.72rem;
-    color: var(--text-3);
-    margin-left: 0.25rem;
-  }
-
+  .ctl:disabled { opacity: 0.4; cursor: default; }
+  .status { flex: 1 1 14rem; min-width: 0; font-size: 0.72rem; color: var(--text-3); margin-left: 0.25rem; }
   .mono { font-family: "IBM Plex Mono", monospace; }
 
-  /* ── Map ── */
-  .map { position: relative; overflow-anchor: none; }
-  .map-svg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: visible; }
+  /* ── Level strip ── */
+  .track-wrap {
+    position: relative;
+    margin-inline: -1.5rem;
+  }
+  /* soft edge fade hints that the strip scrolls */
+  .track-wrap::before,
+  .track-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2.5rem;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .track-wrap::before { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
+  .track-wrap::after { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
 
-  .stops { list-style: none; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2.25rem; }
+  .track {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    padding: 0.5rem 0 0.75rem;
+  }
+  .track::-webkit-scrollbar { display: none; }
 
-  .stop { position: relative; min-height: 5.5rem; }
+  .track-inner {
+    position: relative;
+    width: max-content;
+    min-width: 100%;
+    padding-inline: calc(50% - 90px);
+  }
+  .stops { list-style: none; display: flex; }
+
+  .stop {
+    position: relative;
+    flex: 0 0 180px;
+    width: 180px;
+    text-align: center;
+    padding: 0 0.5rem 0.5rem;
+    cursor: pointer;
+  }
+
+  /* connector to the next level: solid where cleared, dotted where locked */
+  .stop:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    width: 100%;
+    border-top: 4px solid var(--text);
+    border-radius: 2px;
+    z-index: 0;
+  }
+  .stop.is-locked:not(:last-child)::after,
+  .stop:has(+ .stop.is-locked)::after {
+    border-top: 4px dotted var(--border);
+  }
 
   .node {
-    position: absolute;
-    top: 0.6rem;
+    position: relative;
     z-index: 2;
-    width: 52px;
-    height: 52px;
-    margin-left: -26px;
     display: grid;
     place-items: center;
-    font-size: 0.85rem;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 0.7rem;
+    font-size: 0.95rem;
     font-weight: 500;
     color: var(--text);
     background: var(--bg);
@@ -388,119 +363,30 @@ const withNumbers = (t: string) =>
   .node svg { width: 20px; height: 20px; grid-area: 1 / 1; display: none; }
   .node-num { grid-area: 1 / 1; }
 
-  .stop--a .node { left: 20%; }
-  .stop--b .node { left: 80%; }
+  .stop-date { font-size: 0.72rem; color: var(--text-3); letter-spacing: 0.02em; margin-bottom: 0.15rem; }
+  .stop-name { font-size: 0.9rem; line-height: 1.4; color: var(--text-2); }
 
-  .stop--a .card { margin-left: 30%; width: 56%; }
-  .stop--b .card { margin-left: 14%; width: 56%; }
-
-  .card {
-    padding: 1.1rem 1.25rem 0.9rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
-  }
-  @media (hover: hover) {
-    .stop:not(.is-locked):not(.is-open) .card:hover { border-color: var(--text-3); }
-  }
-  .stop.is-here .card { border-color: var(--text); }
-  .stop.is-open .card { border-color: var(--text); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06); cursor: default; }
-
-  .meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.72rem;
-    color: var(--text-3);
-    margin-bottom: 0.45rem;
-  }
-  .badge--cleared { display: none; }
-  .stop.is-done .badge--cleared { display: inline; }
-  .badge--now { background: var(--text); color: var(--bg); border-color: var(--text); }
-  .badge {
-    font-size: 0.62rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--text);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 0.1rem 0.35rem;
-    line-height: 1.2;
-  }
-  .title { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; color: var(--text); }
-  .company { font-size: 0.9rem; color: var(--text-2); margin-top: 0.1rem; }
-  .company-link { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--border); }
-  .company-link:hover { color: var(--text); text-decoration-color: var(--text-3); }
-
-  /* details */
-  .card-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
-  .stop.is-open .card-body { grid-template-rows: 1fr; }
-  .card-body-inner { overflow: hidden; min-height: 0; }
-  .stop.is-open .card-body-inner { padding-top: 0.85rem; }
-  .tag {
-    display: inline-block;
-    font-size: 0.68rem;
-    letter-spacing: 0.03em;
-    color: var(--text-2);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 0.15rem 0.5rem;
-    margin-bottom: 0.7rem;
-  }
-  .bullets { gap: 0.55rem; }
-  .bullets :global(li) { font-size: 0.9rem; line-height: 1.7; }
-  .bullets :global(.num) {
-    font-weight: 600;
-    color: var(--text);
-    background: var(--surface);
-    border-radius: 3px;
-    padding: 0 0.2em;
-    outline: 1px solid var(--border);
-  }
-
-  .hint {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    min-height: 1.9rem;
-    margin-top: 0.4rem;
-    font-size: 0.72rem;
-    letter-spacing: 0.02em;
-    color: var(--text);
-  }
-  .hint svg { width: 0.9rem; height: 0.9rem; }
-  .hint-locked, .hint-close { display: none; align-items: center; gap: 0.35rem; }
-  .chev { transition: transform 0.25s ease; }
-  .stop.is-open .chev { transform: rotate(180deg); }
-  .stop.is-open .hint-open { display: none; }
-  .stop.is-open .hint-close { display: inline; }
-  .stop.is-locked .hint-open { display: none; }
-  .stop.is-locked .hint-locked { display: inline-flex; }
-  .stop.is-locked .chev { display: none; }
-  .stop.is-locked .hint { color: var(--text-3); }
-
-  /* node states */
   .stop.is-done .node { background: var(--text); color: var(--bg); }
-  .stop.is-done .node .node-num { display: none; }
-  .stop.is-done .node .node-check { display: block; }
-  .stop.is-here .node { background: var(--bg); border-width: 3px; animation: here-ring 2.2s ease-out infinite; }
+  .stop.is-done .node-num { display: none; }
+  .stop.is-done .node-check { display: block; }
+  .stop.is-here .node { border-width: 3px; animation: here-ring 2.2s ease-out infinite; }
+  .stop.is-here .node-num { opacity: 0; }
+  .stop.is-here .stop-name, .stop.is-here .stop-date { color: var(--text); font-weight: 600; }
+  .stop.is-locked { cursor: not-allowed; }
   .stop.is-locked .node { border-style: dashed; border-color: var(--text-3); color: var(--text-3); cursor: not-allowed; }
-  .stop.is-locked .node .node-num { display: none; }
-  .stop.is-locked .node .node-lock { display: block; }
-  .stop.is-locked .card { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
-  .stop.is-here .node .node-num { opacity: 0; }
+  .stop.is-locked .node-num { display: none; }
+  .stop.is-locked .node-lock { display: block; }
+  .stop.is-locked .stop-name, .stop.is-locked .stop-date { opacity: 0.55; }
+  @media (hover: hover) {
+    .stop:not(.is-locked):not(.is-here):hover .node { border-color: var(--text-3); }
+  }
 
   @keyframes here-ring {
     0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--text) 35%, transparent); }
     70%  { box-shadow: 0 0 0 14px transparent; }
     100% { box-shadow: 0 0 0 0 transparent; }
   }
-
-  .stop.shake .card, .stop.shake .node { animation: shake 0.35s ease; }
+  .stop.shake .node { animation: shake 0.35s ease; }
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-5px); }
@@ -512,8 +398,8 @@ const withNumbers = (t: string) =>
     top: 0;
     left: 0;
     z-index: 3;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
     border: 3px solid var(--text);
@@ -522,21 +408,95 @@ const withNumbers = (t: string) =>
     pointer-events: none;
     will-change: transform;
   }
-  .map.is-walking .node, .map.is-walking .card { animation: none; transition: none; }
+  .track-inner.is-walking .node,
+  .track-inner.is-walking .stop { animation: none; transition: none; }
+
+  /* ── Bottom panel: what I was doing there ── */
+  .panel {
+    margin-top: auto;
+    padding-top: 1.5rem;
+  }
+  .detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 1.5rem 2.5rem;
+    padding: 1.5rem 1.6rem;
+    background: var(--bg);
+    border: 1px solid var(--text-3);
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  }
+  .detail[hidden] { display: none; }
+  .detail.enter { animation: panel-in 0.28s ease; }
+  @keyframes panel-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .detail-level {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    color: var(--text-3);
+    margin-bottom: 0.6rem;
+  }
+  .badge {
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1rem 0.35rem;
+    line-height: 1.2;
+  }
+  .badge--now { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .detail-title { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; color: var(--text); }
+  .detail-company { font-size: 0.95rem; color: var(--text-2); margin-top: 0.2rem; }
+  .company-link { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--border); }
+  .company-link:hover { color: var(--text); text-decoration-color: var(--text-3); }
+  .detail-dates { font-size: 0.72rem; color: var(--text-3); margin-top: 0.7rem; }
+  .tag {
+    display: inline-block;
+    margin-top: 0.7rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    color: var(--text-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.15rem 0.5rem;
+  }
+  .bullets { gap: 0.65rem; align-self: start; }
+  .bullets :global(li) { font-size: 0.9rem; line-height: 1.7; }
+  .bullets :global(.num) {
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface);
+    border-radius: 3px;
+    padding: 0 0.2em;
+    outline: 1px solid var(--border);
+  }
+
+  .detail-locked { grid-column: 1 / -1; display: flex; align-items: center; gap: 1rem; color: var(--text-3); }
+  .detail-locked svg { width: 28px; height: 28px; flex-shrink: 0; }
+  .detail-locked .detail-title { color: var(--text-2); }
+  .detail-locked .detail-level { margin-bottom: 0.3rem; }
+
+  @media (max-width: 760px) {
+    .detail { grid-template-columns: 1fr; padding: 1.2rem 1.2rem; gap: 1rem; }
+  }
 
   @media (max-width: 640px) {
-    .map-page { padding: 5.5rem 1.1rem 2.5rem; }
-    .stops { gap: 1.5rem; }
-    .stop--a .node { left: 26px; }
-    .stop--b .node { left: 42px; }
-    .stop--a .card, .stop--b .card { margin-left: 74px; width: auto; }
-    .node { width: 46px; height: 46px; margin-left: -23px; }
-    .player { width: 40px; height: 40px; }
-    .card { padding: 1rem 1rem 0.8rem; }
+    .stage { padding: 5.5rem 1.1rem 5rem; }
+    .track-wrap { margin-inline: -1.1rem; }
+    .stop { flex-basis: 150px; width: 150px; }
+    .track-inner { padding-inline: calc(50% - 75px); }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .card-body, .chev, .card, .node { transition: none; }
-    .stop.is-here .node, .stop.shake .card, .stop.shake .node { animation: none; }
+    .detail.enter, .stop.is-here .node, .stop.shake .node { animation: none; }
+    .node, .ctl { transition: none; }
   }
 </style>
