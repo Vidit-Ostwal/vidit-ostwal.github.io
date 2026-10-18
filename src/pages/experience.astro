@@ -24,7 +24,7 @@ const withNumbers = (t: string) =>
 
   <div class="header">
     <h1>Experience</h1>
-    <p class="sub">The path runs left to right, from my first project to what I'm doing now. Pick any cleared level to see what I was up to there. Locked levels are what's next.</p>
+    <p class="sub">Follow the path from my first project to what I'm doing now. Tap any cleared level to see what I was up to there. Locked levels are what's next.</p>
   </div>
 
   <div class="bar">
@@ -34,10 +34,8 @@ const withNumbers = (t: string) =>
     <p class="status mono" id="map-status" role="status" aria-live="polite"></p>
   </div>
 
-  <div class="track-wrap">
-    <div class="track" id="track">
-      <div class="track-inner" id="track-inner">
-        <ol class="stops">
+  <div class="snake" id="snake">
+        <ol class="stops" id="stops">
           {stops.map((stop, i) => (
             <li class="stop" data-index={i} data-locked={stop.locked ? 'true' : undefined} data-current={!stop.locked && stop.role.current ? 'true' : undefined}>
               <button
@@ -59,9 +57,7 @@ const withNumbers = (t: string) =>
             </li>
           ))}
         </ol>
-        <img class="player" src={withBase('/photo-small.png')} alt="" width="44" height="44" decoding="async" aria-hidden="true" />
-      </div>
-    </div>
+        <img class="player" src={withBase('/photo-small.png')} alt="" width="48" height="48" decoding="async" aria-hidden="true" />
   </div>
 
   <section class="panel" id="panel" aria-live="polite" aria-label="What I was doing at this level">
@@ -110,36 +106,63 @@ const withNumbers = (t: string) =>
 
 <script>
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const track = document.getElementById('track') as HTMLElement;
-  const inner = document.getElementById('track-inner') as HTMLElement;
-  const stopEls = Array.from(inner.querySelectorAll<HTMLElement>('.stop'));
+  const snake = document.getElementById('snake') as HTMLElement;
+  const list = document.getElementById('stops') as HTMLElement;
+  const stopEls = Array.from(list.querySelectorAll<HTMLElement>('.stop'));
   const nodes = stopEls.map((s) => s.querySelector<HTMLButtonElement>('.node')!);
   const details = Array.from(document.querySelectorAll<HTMLElement>('.detail'));
+  const panel = document.getElementById('panel') as HTMLElement;
   const locked = stopEls.map((s) => s.dataset.locked === 'true');
-  const player = inner.querySelector('.player') as HTMLElement;
+  const player = snake.querySelector('.player') as HTMLElement;
   const status = document.getElementById('map-status') as HTMLElement;
   const nowBtn = document.getElementById('back-to-now') as HTMLButtonElement;
   const prevBtn = document.getElementById('prev') as HTMLButtonElement;
   const nextBtn = document.getElementById('next') as HTMLButtonElement;
   const titles = details.map((d) => d.querySelector('.detail-title')!.textContent ?? '');
+  const last = stopEls.length - 1;
+  const NODE_R = 30;   // node radius (px) — matches the CSS
+  let TURN = 40;       // how far a U-turn bulges out (px), read from the CSS
 
-  // The current role is the level marked current.
   const nowIdx = Math.max(0, stopEls.findIndex((s) => s.dataset.current === 'true'));
   let at = nowIdx;
   let busy = false;
-  let tokenX = 0;
+  let cols = 5;
+  let pos = { x: 0, y: 0 };
 
   const say = (msg: string) => { status.textContent = msg; };
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, reduced ? 0 : ms));
 
-  const nodeX = (i: number) => stopEls[i].offsetLeft + stopEls[i].offsetWidth / 2;
-  const nodeY = () => nodes[0].offsetTop + nodes[0].offsetHeight / 2;
-
-  function placeToken(x: number) {
-    tokenX = x;
-    player.style.transform = `translate3d(${x - 24}px, ${nodeY() - 24}px, 0)`;
+  /** Lay the levels out as a snake: even rows run left to right, odd rows right to left. */
+  function layout() {
+    cols = snake.clientWidth >= 700 ? 5 : 3;
+    list.style.setProperty('--cols', String(cols));
+    stopEls.forEach((el, i) => {
+      const row = Math.floor(i / cols);
+      const inRow = i % cols;
+      const rtl = row % 2 === 1;
+      el.style.gridRow = String(row + 1);
+      el.style.gridColumn = String((rtl ? cols - 1 - inRow : inRow) + 1);
+      el.dataset.dir = rtl ? 'rtl' : 'ltr';
+      const endOfRow = inRow === cols - 1 && i < last;
+      el.dataset.turn = endOfRow ? (rtl ? 'left' : 'right') : '';
+      const hasNext = i < last && !endOfRow;
+      el.dataset.link = hasNext || endOfRow ? (locked[i] || locked[i + 1] ? 'dotted' : 'solid') : '';
+      el.dataset.hlink = hasNext ? 'true' : '';
+    });
+    const turnEl = stopEls.find((e) => e.dataset.turn);
+    if (turnEl) TURN = parseFloat(getComputedStyle(turnEl, '::before').width) || 40;
+    const c = center(at);
+    placeToken(c.x, c.y);
   }
-  const scrollTo = (x: number) => { track.scrollLeft = x - track.clientWidth / 2; };
+
+  function center(i: number) {
+    const el = stopEls[i];
+    return { x: el.offsetLeft + el.offsetWidth / 2, y: el.offsetTop + NODE_R };
+  }
+
+  function placeToken(x: number, y: number) {
+    pos = { x, y };
+    player.style.transform = `translate3d(${x - 24}px, ${y - 24}px, 0)`;
+  }
 
   function render() {
     stopEls.forEach((el, i) => {
@@ -149,9 +172,9 @@ const withNumbers = (t: string) =>
       nodes[i].toggleAttribute('aria-current', i === at);
     });
     const unlocked = locked.map((l, i) => (l ? -1 : i)).filter((i) => i >= 0);
-    const pos = unlocked.indexOf(at);
-    prevBtn.disabled = busy || pos <= 0;
-    nextBtn.disabled = busy || pos >= unlocked.length - 1;
+    const p = unlocked.indexOf(at);
+    prevBtn.disabled = busy || p <= 0;
+    nextBtn.disabled = busy || p >= unlocked.length - 1;
     nowBtn.disabled = busy || at === nowIdx;
   }
 
@@ -163,20 +186,51 @@ const withNumbers = (t: string) =>
     d.classList.add('enter');
   }
 
-  /** One smooth motion for token + camera, driven together so they never drift. */
-  function tween(fromX: number, toX: number): Promise<void> {
-    const dist = Math.abs(toX - fromX);
-    if (reduced || dist === 0) { placeToken(toX); scrollTo(toX); return Promise.resolve(); }
-    const duration = Math.min(1600, Math.max(500, dist * 1.1));
-    const fromScroll = track.scrollLeft;
-    const toScroll = toX - track.clientWidth / 2;
+  /** Points the token walks through: node centres, with the U-turn corners between rows. */
+  function route(from: number, to: number) {
+    const dir = to > from ? 1 : -1;
+    const pts = [center(from)];
+    for (let i = from; i !== to; i += dir) {
+      const lo = Math.min(i, i + dir);
+      const side = stopEls[lo].dataset.turn;
+      if (side) {
+        const a = center(lo);
+        const b = center(lo + 1);
+        const x = a.x + (side === 'right' ? TURN : -TURN);
+        const corner = [{ x, y: a.y }, { x, y: b.y }];
+        pts.push(...(dir === 1 ? corner : corner.reverse()));
+      }
+      pts.push(center(i + dir));
+    }
+    return pts;
+  }
+
+  /** One continuous eased walk along the route. */
+  function walk(from: number, to: number): Promise<void> {
+    const pts = route(from, to);
+    const lens: number[] = [];
+    let total = 0;
+    for (let k = 1; k < pts.length; k++) {
+      const l = Math.hypot(pts[k].x - pts[k - 1].x, pts[k].y - pts[k - 1].y);
+      lens.push(l);
+      total += l;
+    }
+    if (reduced || total === 0) {
+      const end = pts[pts.length - 1];
+      placeToken(end.x, end.y);
+      return Promise.resolve();
+    }
+    const duration = Math.min(2600, Math.max(600, (total / 700) * 1000));
     return new Promise((resolve) => {
       const t0 = performance.now();
       const frame = (now: number) => {
         const t = Math.min(1, (now - t0) / duration);
         const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        placeToken(fromX + (toX - fromX) * e);
-        track.scrollLeft = fromScroll + (toScroll - fromScroll) * e;
+        let d = e * total;
+        let k = 0;
+        while (k < lens.length - 1 && d > lens[k]) { d -= lens[k]; k++; }
+        const f = lens[k] ? Math.min(1, d / lens[k]) : 1;
+        placeToken(pts[k].x + (pts[k + 1].x - pts[k].x) * f, pts[k].y + (pts[k + 1].y - pts[k].y) * f);
         if (t < 1) requestAnimationFrame(frame);
         else resolve();
       };
@@ -194,19 +248,25 @@ const withNumbers = (t: string) =>
       say('Locked. This level is coming soon.');
       return;
     }
-    if (i === at) { showDetail(i); return; }
+    if (i === at) { showDetail(i); revealPanel(); return; }
     busy = true;
     render();
-    inner.classList.add('is-walking');
+    snake.classList.add('is-walking');
     details.forEach((d) => { d.hidden = true; });
-    await tween(tokenX, nodeX(i));
-    inner.classList.remove('is-walking');
+    await walk(at, i);
+    snake.classList.remove('is-walking');
     at = i;
     busy = false;
     render();
     showDetail(i);
     say(i === nowIdx ? `Right now: ${titles[i]}` : `Looking back at: ${titles[i]}`);
     nodes[i].focus({ preventScroll: true });
+    revealPanel();
+  }
+
+  /** On small screens the panel can sit below the fold — bring it into view. */
+  function revealPanel() {
+    requestAnimationFrame(() => panel.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' }));
   }
 
   const unlockedIdx = () => locked.map((l, i) => (l ? -1 : i)).filter((i) => i >= 0);
@@ -220,27 +280,21 @@ const withNumbers = (t: string) =>
   stopEls.forEach((s, i) => s.addEventListener('click', (e) => {
     if (!(e.target as HTMLElement).closest('.node')) select(i);
   }));
-  prevBtn.addEventListener('click', () => step(-1)); // left: earlier
-  nextBtn.addEventListener('click', () => step(1));  // right: later
+  prevBtn.addEventListener('click', () => step(-1)); // earlier
+  nextBtn.addEventListener('click', () => step(1));  // later
   nowBtn.addEventListener('click', () => select(nowIdx));
-  track.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+  list.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); step(1); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); step(-1); }
   });
 
-  function layout() {
-    if (busy) return;
-    placeToken(nodeX(at));
-  }
-  new ResizeObserver(layout).observe(inner);
-  window.addEventListener('resize', () => { layout(); scrollTo(nodeX(at)); });
+  new ResizeObserver(() => { if (!busy) layout(); }).observe(snake);
 
   render();
   showDetail(at);
   layout();
-  scrollTo(nodeX(at));
   say(`Right now: ${titles[at]}`);
-  document.fonts?.ready.then(() => { layout(); scrollTo(nodeX(at)); });
+  document.fonts?.ready.then(() => { if (!busy) layout(); });
 </script>
 
 <style>
@@ -279,64 +333,69 @@ const withNumbers = (t: string) =>
   .status { flex: 1 1 14rem; min-width: 0; font-size: 0.72rem; color: var(--text-3); margin-left: 0.25rem; }
   .mono { font-family: "IBM Plex Mono", monospace; }
 
-  /* ── Level strip ── */
-  .track-wrap {
+  /* ── Snake board ── */
+  .snake {
     position: relative;
-    margin-inline: -1.5rem;
+    margin-top: 0.75rem;
   }
-  /* soft edge fade hints that the strip scrolls */
-  .track-wrap::before,
-  .track-wrap::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 2.5rem;
-    z-index: 4;
-    pointer-events: none;
-  }
-  .track-wrap::before { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
-  .track-wrap::after { right: 0; background: linear-gradient(to left, var(--bg), transparent); }
 
-  .track {
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    padding: 0.5rem 0 0.75rem;
+  .stops {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr));
+    row-gap: 1.75rem;
+    --rowgap: 1.75rem;
+    /* U-turns bulge past the last column so they never cross a label */
+    --turn-out: 1.75rem;
+    padding-inline: 2rem;
   }
-  .track::-webkit-scrollbar { display: none; }
-
-  .track-inner {
-    position: relative;
-    width: max-content;
-    min-width: 100%;
-    padding-inline: calc(50% - 90px);
-  }
-  .stops { list-style: none; display: flex; }
 
   .stop {
     position: relative;
-    flex: 0 0 180px;
-    width: 180px;
     text-align: center;
-    padding: 0 0.5rem 0.5rem;
+    padding: 0 0.4rem 0.25rem;
     cursor: pointer;
   }
 
-  /* connector to the next level: solid where cleared, dotted where locked */
-  .stop:not(:last-child)::after {
+  /* straight link to the next level in the row */
+  .stop[data-hlink='true']::after {
     content: '';
     position: absolute;
     top: 30px;
-    left: 50%;
     width: 100%;
     border-top: 4px solid var(--text);
     border-radius: 2px;
     z-index: 0;
   }
-  .stop.is-locked:not(:last-child)::after,
-  .stop:has(+ .stop.is-locked)::after {
-    border-top: 4px dotted var(--border);
+  .stop[data-hlink='true'][data-dir='ltr']::after { left: 50%; }
+  .stop[data-hlink='true'][data-dir='rtl']::after { right: 50%; }
+
+  /* U-turn at the end of a row, down to the first level of the next row */
+  .stop[data-turn='right']::before,
+  .stop[data-turn='left']::before {
+    content: '';
+    position: absolute;
+    top: 30px;
+    width: calc(50% + var(--turn-out));
+    height: calc(100% + var(--rowgap));
+    border: 4px solid var(--text);
+    z-index: 0;
+  }
+  .stop[data-turn='right']::before {
+    left: 50%;
+    border-left: 0;
+    border-radius: 0 30px 30px 0;
+  }
+  .stop[data-turn='left']::before {
+    right: 50%;
+    border-right: 0;
+    border-radius: 30px 0 0 30px;
+  }
+  /* dotted where the road isn't open yet */
+  .stop[data-link='dotted']::after,
+  .stop[data-link='dotted']::before {
+    border-color: var(--border);
+    border-style: dotted;
   }
 
   .node {
@@ -360,7 +419,7 @@ const withNumbers = (t: string) =>
   .node-num { grid-area: 1 / 1; }
 
   .stop-date { font-size: 0.72rem; color: var(--text-3); letter-spacing: 0.02em; margin-bottom: 0.15rem; }
-  .stop-name { font-size: 0.9rem; line-height: 1.4; color: var(--text-2); }
+  .stop-name { font-size: 0.9rem; line-height: 1.4; color: var(--text-2); max-width: 11rem; margin-inline: auto; }
 
   .stop.is-done .node { background: var(--text); color: var(--bg); }
   .stop.is-done .node-num { display: none; }
@@ -404,8 +463,8 @@ const withNumbers = (t: string) =>
     pointer-events: none;
     will-change: transform;
   }
-  .track-inner.is-walking .node,
-  .track-inner.is-walking .stop { animation: none; transition: none; }
+  .snake.is-walking .node,
+  .snake.is-walking .stop { animation: none; transition: none; }
 
   /* ── Bottom panel: what I was doing there ── */
   .panel {
@@ -485,10 +544,11 @@ const withNumbers = (t: string) =>
 
   @media (max-width: 640px) {
     .stage { padding: 5.5rem 1.1rem 5rem; }
-    .panel { margin-top: 0.75rem; }
-    .track-wrap { margin-inline: -1.1rem; }
-    .stop { flex-basis: 150px; width: 150px; }
-    .track-inner { padding-inline: calc(50% - 75px); }
+    .panel { margin-top: 1.25rem; }
+    .stops { row-gap: 1.4rem; --rowgap: 1.4rem; --turn-out: 0.9rem; padding-inline: 1rem; }
+    .stop { padding-inline: 0.15rem; }
+    .stop-name { font-size: 0.8rem; }
+    .stop-date { font-size: 0.66rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {
