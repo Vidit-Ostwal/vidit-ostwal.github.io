@@ -10,6 +10,8 @@ export interface Role {
   current: boolean;
   /** Overrides the computed tenure, e.g. for year-only dates. */
   duration?: string;
+  /** Keep the entry in data, but omit it from the site. */
+  hidden?: boolean;
   bullets: string[];
 }
 
@@ -70,7 +72,7 @@ export function formatDateRange(start: string, end: string): string {
   return `${start} – ${end}`;
 }
 
-export const experience: Role[] = [
+const allExperience: Role[] = [
   {
     title: 'Open Source Developer',
     company: 'CrewAI',
@@ -91,6 +93,7 @@ export const experience: Role[] = [
     start: 'Aug 2026',
     end: 'Aug 2026',
     current: false,
+    hidden: true,
     bullets: [
       'TA consultant for E6 and E7 cohorts — helped design course content and ran breakout rooms, quizzes, and live sessions.',
       'Supported 320+ learners, resolving doubts in group settings and 1-on-1 sessions.',
@@ -167,6 +170,9 @@ export const experience: Role[] = [
     ],
   },
 ];
+
+/** Roles rendered on the site. Set `hidden` to keep an entry in data without showing it. */
+export const experience = allExperience.filter((role) => !role.hidden);
 
 /** Shown as the first level on the Experience map. Kept apart from `experience` so job lists stay jobs only. */
 export const education: Role[] = [
